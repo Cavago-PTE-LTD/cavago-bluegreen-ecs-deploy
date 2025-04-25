@@ -3,14 +3,17 @@ description: Performs blue-green deployment using ALB, ECS, and two target group
 author: Yushin Son
 
 inputs:
+  environment:
+    description: Environment name
+    required: true
+  image_tag:
+    description: Docker image tag
+    required: true
   cluster-name:
     description: Name of the ECS cluster
     required: true
-  service-a-name:
-    description: Name of ECS service A
-    required: true
-  service-b-name:
-    description: Name of ECS service B
+  listener-arn:
+    description: ARN of the ALB listener
     required: true
   tg-a-arn:
     description: ARN of target group A
@@ -18,19 +21,14 @@ inputs:
   tg-b-arn:
     description: ARN of target group B
     required: true
-  listener-arn:
-    description: ARN of the ALB listener
+  service-a-name:
+    description: Name of ECS service A
     required: true
-  image:
-    description: Docker image to deploy
+  service-b-name:
+    description: Name of ECS service B
     required: true
-  container-name:
-    description: Name of the container to update in the task definition
-    required: true
-  aws-region:
-    description: AWS region
-    required: false
-    default: us-east-1
+  
+ 
 
 runs:
   using: "composite"
@@ -42,13 +40,12 @@ runs:
     - name: Run blue-green deploy script
       run: |
         ${{ github.action_path }}/deploy-bluegreen.sh \
+          "${{ inputs.environment }}" \
+          "${{ inputs.image_tag }}" \
           "${{ inputs.cluster-name }}" \
-          "${{ inputs.service-a-name }}" \
-          "${{ inputs.service-b-name }}" \
-          "${{ inputs.tg-a-arn }}" \
-          "${{ inputs.tg-b-arn }}" \
           "${{ inputs.listener-arn }}" \
-          "${{ inputs.image }}" \
-          "${{ inputs.container-name }}" \
-          "${{ inputs.aws-region }}"
+          "${{ inputs.tg-a-name }}" \
+          "${{ inputs.tg-b-name }}" \
+          "${{ inputs.service-a-name }}" \
+          "${{ inputs.service-b-name }}"
       shell: bash
