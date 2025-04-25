@@ -1,0 +1,54 @@
+name: Blue-Green ECS Deployment
+description: Performs blue-green deployment using ALB, ECS, and two target groups (A/B).
+author: Yushin Son
+
+inputs:
+  cluster-name:
+    description: Name of the ECS cluster
+    required: true
+  service-a-name:
+    description: Name of ECS service A
+    required: true
+  service-b-name:
+    description: Name of ECS service B
+    required: true
+  tg-a-arn:
+    description: ARN of target group A
+    required: true
+  tg-b-arn:
+    description: ARN of target group B
+    required: true
+  listener-arn:
+    description: ARN of the ALB listener
+    required: true
+  image:
+    description: Docker image to deploy
+    required: true
+  container-name:
+    description: Name of the container to update in the task definition
+    required: true
+  aws-region:
+    description: AWS region
+    required: false
+    default: us-east-1
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set executable permission
+      run: chmod +x ${{ github.action_path }}/deploy-bluegreen.sh
+      shell: bash
+
+    - name: Run blue-green deploy script
+      run: |
+        ${{ github.action_path }}/deploy-bluegreen.sh \
+          "${{ inputs.cluster-name }}" \
+          "${{ inputs.service-a-name }}" \
+          "${{ inputs.service-b-name }}" \
+          "${{ inputs.tg-a-arn }}" \
+          "${{ inputs.tg-b-arn }}" \
+          "${{ inputs.listener-arn }}" \
+          "${{ inputs.image }}" \
+          "${{ inputs.container-name }}" \
+          "${{ inputs.aws-region }}"
+      shell: bash
