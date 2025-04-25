@@ -9,6 +9,9 @@ inputs:
   image-tag:
     description: Docker image tag
     required: true
+  ecr-uri:
+    description: ECR URI
+    required: true
   cluster-name:
     description: Name of the ECS cluster
     required: true
@@ -41,7 +44,8 @@ runs:
       run: |
         ${{ github.action_path }}/deploy-bluegreen.sh \
           "${{ inputs.environment }}" \
-          "${{ inputs.image_tag }}" \
+          "${{ inputs.image-tag }}" \
+          "${{ inputs.ecr-uri }}" \
           "${{ inputs.cluster-name }}" \
           "${{ inputs.listener-arn }}" \
           "${{ inputs.tg-a-name }}" \

@@ -4,12 +4,15 @@ set -e
 # Input parameters
 ENVIRONMENT="$1"
 IMAGE_TAG="$2"
-CLUSTER_NAME="$3"
-LISTENER_ARN="$4"
-TG_A_NAME="$5"
-TG_B_NAME="$6"
-SVC_A_NAME="$7"
-SVC_B_NAME="$8"
+ECR_URI="$3"
+CLUSTER_NAME="$4"
+LISTENER_ARN="$5"
+TG_A_NAME="$6"
+TG_B_NAME="$7"
+SVC_A_NAME="$8"
+SVC_B_NAME="$9"
+
+NEW_IMAGE="$ECR_URI:$IMAGE_TAG"
 
 echo "🔄 Starting A/B deployment for environment: $ENVIRONMENT"
 echo "🖼️  Deploying image tag: $IMAGE_TAG"
@@ -38,13 +41,32 @@ else
   exit 1
 fi
 
+echo "📥 Fetching current task definition for: $TASK_DEF_NAME"
+aws ecs describe-task-definition --task-definition "$TASK_DEF_NAME" > task-def.json
+
+echo "🛠 Updating task definition with new image: $NEW_IMAGE"
+UPDATED_TASK_DEF=$(jq --arg IMAGE "$NEW_IMAGE" \
+  --arg CONTAINER "$CONTAINER_NAME" \
+  '.taskDefinition |
+   del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) |
+   .containerDefinitions |= map(if .name == $CONTAINER then .image = $IMAGE else . end)' \
+   task-def.json)
+
+echo "$UPDATED_TASK_DEF" > new-task-def.json
+
+echo "📤 Registering new task definition..."
+NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+  --cli-input-json file://new-task-def.json \
+  --query "taskDefinition.taskDefinitionArn" \
+  --output text)
+
 # Update idle service to new image
-echo "🚀 Updating $IDLE_SVC to image tag $IMAGE_TAG..."
+echo "🚀 Updating ECS service to use new task definition..."
 aws ecs update-service \
   --cluster "$CLUSTER_NAME" \
-  --service "$IDLE_SVC" \
-  --force-new-deployment \
-  --output text
+  --service "$SERVICE_NAME" \
+  --task-definition "$NEW_TASK_DEF_ARN" \
+  --force-new-deployment
 
 # Wait for the new service to become healthy
 echo "⏳ Waiting for $IDLE_SVC to stabilize..."
