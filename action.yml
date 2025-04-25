@@ -6,7 +6,7 @@ inputs:
   environment:
     description: Environment name
     required: true
-  image_tag:
+  image-tag:
     description: Docker image tag
     required: true
   cluster-name:
@@ -15,10 +15,10 @@ inputs:
   listener-arn:
     description: ARN of the ALB listener
     required: true
-  tg-a-arn:
+  tg-a-name:
     description: ARN of target group A
     required: true
-  tg-b-arn:
+  tg-b-name:
     description: ARN of target group B
     required: true
   service-a-name:

@@ -8,8 +8,8 @@ CLUSTER_NAME="$3"
 LISTENER_ARN="$4"
 TG_A_NAME="$5"
 TG_B_NAME="$6"
-SVC_A="$7"
-SVC_B="$8"
+SVC_A_NAME="$7"
+SVC_B_NAME="$8"
 
 echo "🔄 Starting A/B deployment for environment: $ENVIRONMENT"
 echo "🖼️  Deploying image tag: $IMAGE_TAG"
@@ -18,21 +18,21 @@ echo "🖼️  Deploying image tag: $IMAGE_TAG"
 ACTIVE_TG_ARN=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" \
   --query "Rules[?Priority=='1'].Actions[0].TargetGroupArn" --output text)
 
-TG_ARN_A=$(aws elbv2 describe-target-groups --names "$TG_A_NAME" \
+TG_A_ARN=$(aws elbv2 describe-target-groups --names "$TG_A_NAME" \
   --query "TargetGroups[0].TargetGroupArn" --output text)
-TG_ARN_B=$(aws elbv2 describe-target-groups --names "$TG_B_NAME" \
+TG_B_ARN=$(aws elbv2 describe-target-groups --names "$TG_B_NAME" \
   --query "TargetGroups[0].TargetGroupArn" --output text)
 
-if [ "$ACTIVE_TG_ARN" == "$TG_ARN_A" ]; then
+if [ "$ACTIVE_TG_ARN" == "$TG_A_ARN" ]; then
   echo "✅ A is active. Deploying to B."
-  ACTIVE_SVC="$SVC_A"
-  IDLE_SVC="$SVC_B"
-  IDLE_TG_ARN="$TG_ARN_B"
-elif [ "$ACTIVE_TG_ARN" == "$TG_ARN_B" ]; then
+  ACTIVE_SVC="$SVC_A_NAME"
+  IDLE_SVC="$SVC_B_NAME"
+  IDLE_TG_ARN="$TG_B_ARN"
+elif [ "$ACTIVE_TG_ARN" == "$TG_B_ARN" ]; then
   echo "✅ B is active. Deploying to A."
-  ACTIVE_SVC="$SVC_B"
-  IDLE_SVC="$SVC_A"
-  IDLE_TG_ARN="$TG_ARN_A"
+  ACTIVE_SVC="$SVC_B_NAME"
+  IDLE_SVC="$SVC_A_NAME"
+  IDLE_TG_ARN="$TG_A_ARN"
 else
   echo "❌ Unable to determine active target group."
   exit 1
