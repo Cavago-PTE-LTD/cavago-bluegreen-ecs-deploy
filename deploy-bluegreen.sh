@@ -90,8 +90,7 @@ RULE_ARN=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" --query "Rule
 
 # Switch ALB rule to point to new target group
 echo "🔁 Switching ALB to new target group..."
-aws elbv2 modify-rule \
-  --listener-arn "$LISTENER_ARN" \
+aws elbv2 modify-rule \  
   --rule-arn "$RULE_ARN" \
   --conditions Field=path-pattern,Values="/" \
   --actions Type=forward,TargetGroupArn="$IDLE_TG_ARN"
