@@ -84,14 +84,17 @@ aws ecs wait services-stable \
   --cluster "$CLUSTER_NAME" \
   --services "$IDLE_SVC"
 
+# Get the rule ARN
+echo "🔑 Getting rule ARN for listener: $LISTENER_ARN"
+RULE_ARN=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" --query "Rules[?Priority=='1'].RuleArn" --output text)
+
 # Switch ALB rule to point to new target group
 echo "🔁 Switching ALB to new target group..."
 aws elbv2 modify-rule \
   --listener-arn "$LISTENER_ARN" \
+  --rule-arn "$RULE_ARN" \
   --conditions Field=path-pattern,Values="/" \
-  --actions Type=forward,TargetGroupArn="$IDLE_TG_ARN" \
-  --rule-arn $(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" \
-    --query "Rules[?Priority=='1'].RuleArn" --output text)
+  --actions Type=forward,TargetGroupArn="$IDLE_TG_ARN"
 
 # Optionally, scale down the old service
 # echo "🧹 (Optional) Scaling down old service: $ACTIVE_SVC"
