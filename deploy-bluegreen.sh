@@ -17,6 +17,14 @@ NEW_IMAGE="$ECR_URI:$IMAGE_TAG"
 
 echo "🔄 Starting A/B deployment for environment: $ENVIRONMENT"
 echo "🖼️  Deploying image tag: $IMAGE_TAG"
+echo "🔑 Using ECR URI: $ECR_URI"
+echo "🔑 Using cluster name: $CLUSTER_NAME"
+echo "🔑 Using task definition name: $TASK_DEF_NAME"
+echo "🔑 Using listener ARN: $LISTENER_ARN"
+echo "🔑 Using target group A name: $TG_A_NAME"
+echo "🔑 Using target group B name: $TG_B_NAME"
+echo "🔑 Using service A name: $SVC_A_NAME"
+echo "🔑 Using service B name: $SVC_B_NAME"
 
 # Determine active and idle services
 ACTIVE_TG_ARN=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" \
