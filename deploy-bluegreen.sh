@@ -54,13 +54,14 @@ fi
 echo "📥 Fetching current task definition for: $TASK_DEF_NAME"
 aws ecs describe-task-definition --task-definition "$TASK_DEF_NAME" > task-def.json
 
-echo "🛠 Updating task definition with new image: $NEW_IMAGE"
-UPDATED_TASK_DEF=$(jq --arg IMAGE "$NEW_IMAGE" \
-  --arg CONTAINER "$CONTAINER_NAME" \
-  '.taskDefinition |
-   del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) |
-   .containerDefinitions |= map(if .name == $CONTAINER then .image = $IMAGE else . end)' \
-   task-def.json)
+# Update only the container you care about
+UPDATED_TASK_DEF=$(jq --arg IMAGE "$NEW_IMAGE" --arg CONTAINER "$CONTAINER_NAME" '
+  .taskDefinition
+  | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
+  | .containerDefinitions = [
+      (.containerDefinitions[] | select(.name == $CONTAINER) | .image = $IMAGE)
+    ]
+' task-def.json)
 
 echo "$UPDATED_TASK_DEF" > new-task-def.json
 
