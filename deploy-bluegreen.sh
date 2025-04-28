@@ -12,6 +12,7 @@ TG_A_NAME="$7"
 TG_B_NAME="$8"
 SVC_A_NAME="$9"
 SVC_B_NAME="$10"
+CONTAINER_NAME="$11"
 
 NEW_IMAGE="$ECR_URI:$IMAGE_TAG"
 
@@ -25,7 +26,7 @@ echo "🔑 Using target group A name: $TG_A_NAME"
 echo "🔑 Using target group B name: $TG_B_NAME"
 echo "🔑 Using service A name: $SVC_A_NAME"
 echo "🔑 Using service B name: $SVC_B_NAME"
-
+echo "🔑 Using container name: $CONTAINER_NAME"
 # Determine active and idle services
 ACTIVE_TG_ARN=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" \
   --query "Rules[?Priority=='1'].Actions[0].TargetGroupArn" --output text)
