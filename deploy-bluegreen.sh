@@ -76,6 +76,7 @@ aws ecs update-service \
   --cluster "$CLUSTER_NAME" \
   --service "$IDLE_SVC" \
   --task-definition "$NEW_TASK_DEF_ARN" \
+  --desired-count 1 \
   --force-new-deployment
 
 # Wait for the new service to become healthy
