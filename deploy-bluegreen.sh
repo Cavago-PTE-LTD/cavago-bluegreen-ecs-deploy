@@ -75,7 +75,7 @@ NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
   --output text)
 
 # Update idle service to new image
-echo "🚀 Updating ECS service to use new task definition..."
+echo "🚀 Updating ECS service to use new task definition: $NEW_TASK_DEF_ARN"
 aws ecs update-service \
   --cluster "$CLUSTER_NAME" \
   --service "$IDLE_SVC" \
