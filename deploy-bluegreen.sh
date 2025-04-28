@@ -85,16 +85,45 @@ aws ecs wait services-stable \
   --cluster "$CLUSTER_NAME" \
   --services "$IDLE_SVC"
 
-# Get the rule ARN
-echo "🔑 Getting rule ARN for listener: $LISTENER_ARN"
-RULE_ARN=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" --query "Rules[?Priority=='1'].RuleArn" --output text)
+# Get the listener rules
+echo "🔎 Fetching listener rules..."
+RULES=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN")
 
-# Switch ALB rule to point to new target group
-echo "🔁 Switching ALB to new target group by modifying the rule: $RULE_ARN"
+# Identify the current Priority 1 Rule ARN (currently active rule)
+CURRENT_RULE_ARN=$(echo "$RULES" | jq -r '.Rules[] | select(.Priority == "1") | .RuleArn')
+
+# Find the old active target group ARN
+CURRENT_ACTIVE_TG_ARN=$(echo "$RULES" | jq -r '.Rules[] | select(.Priority == "1") | .Actions[0].TargetGroupArn')
+
+# Find the Rule for the old idle service (priority 2 or no rule yet)
+OLD_IDLE_RULE_ARN=$(echo "$RULES" | jq -r '.Rules[] | select(.Priority == "2") | .RuleArn // empty')
+
+
+echo "🎯 Current active TG ARN: $CURRENT_ACTIVE_TG_ARN"
+echo "🎯 Current Rule ARN: $CURRENT_RULE_ARN"
+echo "🎯 Old idle Rule ARN (if exists): $OLD_IDLE_RULE_ARN"
+
+# Update current active rule: demote to /green/*, Priority 2
+echo "🔧 Updating current active rule to /green/* and priority 2..."
 aws elbv2 modify-rule \
-  --rule-arn "$RULE_ARN" \
-  --conditions Field=path-pattern,Values="/" \
+  --rule-arn "$CURRENT_RULE_ARN" \
+  --conditions Field=path-pattern,Values="/green/*" \
+  --actions Type=forward,TargetGroupArn="$CURRENT_ACTIVE_TG_ARN"
+
+aws elbv2 set-rule-priorities \
+  --rule-priorities "RuleArn=$CURRENT_RULE_ARN,Priority=2"
+
+# Update idle rule (new deployment): promote to /* and priority 1
+echo "🔧 Updating new active rule to /* and priority 1..."
+aws elbv2 modify-rule \
+  --rule-arn "$OLD_IDLE_RULE_ARN" \
+  --conditions Field=path-pattern,Values="/*" \
   --actions Type=forward,TargetGroupArn="$IDLE_TG_ARN"
+
+aws elbv2 set-rule-priorities \
+  --rule-priorities "RuleArn=$OLD_IDLE_RULE_ARN,Priority=1"
+
+echo "✅ ALB path patterns and priorities updated!"
 
 # Optionally, scale down the old service
 # echo "🧹 (Optional) Scaling down old service: $ACTIVE_SVC"
