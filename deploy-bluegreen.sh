@@ -89,8 +89,8 @@ echo "🔑 Getting rule ARN for listener: $LISTENER_ARN"
 RULE_ARN=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" --query "Rules[?Priority=='1'].RuleArn" --output text)
 
 # Switch ALB rule to point to new target group
-echo "🔁 Switching ALB to new target group my modifying the rule: $RULE_ARN"
-aws elbv2 modify-rule \  
+echo "🔁 Switching ALB to new target group by modifying the rule: $RULE_ARN"
+aws elbv2 modify-rule \
   --rule-arn "$RULE_ARN" \
   --conditions Field=path-pattern,Values="/" \
   --actions Type=forward,TargetGroupArn="$IDLE_TG_ARN"
