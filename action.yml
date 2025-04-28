@@ -15,6 +15,9 @@ inputs:
   cluster-name:
     description: Name of the ECS cluster
     required: true
+  task-def-name:
+    description: Name of the task definition
+    required: true
   listener-arn:
     description: ARN of the ALB listener
     required: true
@@ -47,6 +50,7 @@ runs:
           "${{ inputs.image-tag }}" \
           "${{ inputs.ecr-uri }}" \
           "${{ inputs.cluster-name }}" \
+          "${{ inputs.task-def-name }}" \
           "${{ inputs.listener-arn }}" \
           "${{ inputs.tg-a-name }}" \
           "${{ inputs.tg-b-name }}" \
