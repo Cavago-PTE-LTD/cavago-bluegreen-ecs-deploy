@@ -54,6 +54,9 @@ fi
 echo "📥 Fetching current task definition for: $TASK_DEF_NAME"
 aws ecs describe-task-definition --task-definition "$TASK_DEF_NAME" > task-def.json
 
+echo "📦 Existing container names:"
+jq '.taskDefinition.containerDefinitions[].name' task-def.json
+
 # Update only the container you care about
 UPDATED_TASK_DEF=$(jq --arg IMAGE "$NEW_IMAGE" --arg CONTAINER "$CONTAINER_NAME" '
   .taskDefinition
