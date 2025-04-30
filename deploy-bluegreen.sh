@@ -95,8 +95,8 @@ echo "🔎 Fetching listener rules..."
 RULES=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN")
 
 # Extract the Rule ARNs based on their path-pattern conditions
-BLUE_RULE_ARN=$(echo "$RULES_JSON" | jq -r '.Rules[] | select(.Conditions[].Values[]? == "/*") | .RuleArn')
-GREEN_RULE_ARN=$(echo "$RULES_JSON" | jq -r '.Rules[] | select(.Conditions[].Values[]? == "/green/*") | .RuleArn')
+BLUE_RULE_ARN=$(echo "$RULES" | jq -r '.Rules[] | select(.Conditions[].Values[]? == "/*") | .RuleArn')
+GREEN_RULE_ARN=$(echo "$RULES" | jq -r '.Rules[] | select(.Conditions[].Values[]? == "/green/*") | .RuleArn')
 
 echo "🎯 Blue active TG ARN: $BLUE_TG_ARN"
 echo "🎯 Blue Rule ARN: $BLUE_RULE_ARN"
