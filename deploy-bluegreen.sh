@@ -117,7 +117,7 @@ aws elbv2 modify-rule \
 echo "✅ ALB path patterns and priorities updated!"
 
 # Optionally, scale down the old service
-# echo "🧹 (Optional) Scaling down old service: $ACTIVE_SVC"
-# aws ecs update-service --cluster "$CLUSTER_NAME" --service "$ACTIVE_SVC" --desired-count 0
+echo "🧹 Scaling down old service: $ACTIVE_SVC"
+aws ecs update-service --cluster "$CLUSTER_NAME" --service "$BLUE_SVC" --desired-count 0
 
 echo "✅ A/B deployment complete!"
