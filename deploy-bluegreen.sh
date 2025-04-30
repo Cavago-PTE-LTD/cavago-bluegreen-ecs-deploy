@@ -28,24 +28,25 @@ echo "🔑 Using service A name: $SVC_A_NAME"
 echo "🔑 Using service B name: $SVC_B_NAME"
 echo "🔑 Using container name: $CONTAINER_NAME"
 # Determine active and idle services
-ACTIVE_TG_ARN=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" \
-  --query "Rules[?Priority=='1'].Actions[0].TargetGroupArn" --output text)
+BLUE_TG_ARN=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" \
+  --query "Rules[?Conditions[?Field=='path-pattern'] | [?Values[0]=='/*']].Actions[0].TargetGroupArn" \
+  --output text)
 
 TG_A_ARN=$(aws elbv2 describe-target-groups --names "$TG_A_NAME" \
   --query "TargetGroups[0].TargetGroupArn" --output text)
 TG_B_ARN=$(aws elbv2 describe-target-groups --names "$TG_B_NAME" \
   --query "TargetGroups[0].TargetGroupArn" --output text)
 
-if [ "$ACTIVE_TG_ARN" == "$TG_A_ARN" ]; then
+if [ "$BLUE_TG_ARN" == "$TG_A_ARN" ]; then
   echo "✅ A is active. Deploying to B."
-  ACTIVE_SVC="$SVC_A_NAME"
-  IDLE_SVC="$SVC_B_NAME"
-  IDLE_TG_ARN="$TG_B_ARN"
-elif [ "$ACTIVE_TG_ARN" == "$TG_B_ARN" ]; then
+  BLUE_SVC="$SVC_A_NAME"
+  GREEN_SVC="$SVC_B_NAME"
+  GREEN_TG_ARN="$TG_B_ARN"
+elif [ "$BLUE_TG_ARN" == "$TG_B_ARN" ]; then
   echo "✅ B is active. Deploying to A."
-  ACTIVE_SVC="$SVC_B_NAME"
-  IDLE_SVC="$SVC_A_NAME"
-  IDLE_TG_ARN="$TG_A_ARN"
+  BLUE_SVC="$SVC_B_NAME"
+  GREEN_SVC="$SVC_A_NAME"
+  GREEN_TG_ARN="$TG_A_ARN"
 else
   echo "❌ Unable to determine active target group."
   exit 1
@@ -78,54 +79,40 @@ NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
 echo "🚀 Updating ECS service to use new task definition: $NEW_TASK_DEF_ARN"
 aws ecs update-service \
   --cluster "$CLUSTER_NAME" \
-  --service "$IDLE_SVC" \
+  --service "$GREEN_SVC" \
   --task-definition "$NEW_TASK_DEF_ARN" \
   --desired-count 1 \
   --force-new-deployment
 
 # Wait for the new service to become healthy
-echo "⏳ Waiting for $IDLE_SVC to stabilize..."
+echo "⏳ Waiting for $GREEN_SVC to stabilize..."
 aws ecs wait services-stable \
   --cluster "$CLUSTER_NAME" \
-  --services "$IDLE_SVC"
+  --services "$GREEN_SVC"
 
-# Get the listener rules
+# Fetch all listener rules for the given listener ARN
 echo "🔎 Fetching listener rules..."
 RULES=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN")
 
-# Identify the current Priority 1 Rule ARN (currently active rule)
-CURRENT_RULE_ARN=$(echo "$RULES" | jq -r '.Rules[] | select(.Priority == "1") | .RuleArn')
+# Extract the Rule ARNs based on their path-pattern conditions
+BLUE_RULE_ARN=$(echo "$RULES_JSON" | jq -r '.Rules[] | select(.Conditions[].Values[]? == "/*") | .RuleArn')
+GREEN_RULE_ARN=$(echo "$RULES_JSON" | jq -r '.Rules[] | select(.Conditions[].Values[]? == "/green/*") | .RuleArn')
 
-# Find the old active target group ARN
-CURRENT_ACTIVE_TG_ARN=$(echo "$RULES" | jq -r '.Rules[] | select(.Priority == "1") | .Actions[0].TargetGroupArn')
+echo "🎯 Blue active TG ARN: $BLUE_TG_ARN"
+echo "🎯 Blue Rule ARN: $BLUE_RULE_ARN"
+echo "🎯 Green Rule ARN (if exists): $GREEN_RULE_ARN"
 
-# Find the Rule for the old idle service (priority 2 or no rule yet)
-OLD_IDLE_RULE_ARN=$(echo "$RULES" | jq -r '.Rules[] | select(.Priority == "2") | .RuleArn // empty')
-
-
-echo "🎯 Current active TG ARN: $CURRENT_ACTIVE_TG_ARN"
-echo "🎯 Current Rule ARN: $CURRENT_RULE_ARN"
-echo "🎯 Old idle Rule ARN (if exists): $OLD_IDLE_RULE_ARN"
-
-# Update current active rule: demote to /green/*, Priority 2
-echo "🔧 Updating current active rule to /green/* and priority 2..."
+# Update current active rule: demote to /green/*
+echo "🔧 Updating blue rule to /green/*"
 aws elbv2 modify-rule \
-  --rule-arn "$CURRENT_RULE_ARN" \
-  --conditions Field=path-pattern,Values="/green/*" \
-  --actions Type=forward,TargetGroupArn="$CURRENT_ACTIVE_TG_ARN"
+  --rule-arn "$BLUE_RULE_ARN" \
+  --conditions Field=path-pattern,Values="/green/*"  
 
-aws elbv2 set-rule-priorities \
-  --rule-priorities "RuleArn=$CURRENT_RULE_ARN,Priority=2"
-
-# Update idle rule (new deployment): promote to /* and priority 1
-echo "🔧 Updating new active rule to /* and priority 1..."
+# Update green rule (new deployment): promote to /* 
+echo "🔧 Updating green rule to /*"
 aws elbv2 modify-rule \
-  --rule-arn "$OLD_IDLE_RULE_ARN" \
-  --conditions Field=path-pattern,Values="/*" \
-  --actions Type=forward,TargetGroupArn="$IDLE_TG_ARN"
-
-aws elbv2 set-rule-priorities \
-  --rule-priorities "RuleArn=$OLD_IDLE_RULE_ARN,Priority=1"
+  --rule-arn "$GREEN_RULE_ARN" \
+  --conditions Field=path-pattern,Values="/*"  
 
 echo "✅ ALB path patterns and priorities updated!"
 
