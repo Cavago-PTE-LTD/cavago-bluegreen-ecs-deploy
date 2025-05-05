@@ -13,6 +13,7 @@ TG_B_NAME="$8"
 SVC_A_NAME="$9"
 SVC_B_NAME="${10}"
 CONTAINER_NAME="${11}"
+SUBDOMAIN="${12}"
 
 NEW_IMAGE="$ECR_URI:$IMAGE_TAG"
 
@@ -27,9 +28,13 @@ echo "🔑 Using target group B name: $TG_B_NAME"
 echo "🔑 Using service A name: $SVC_A_NAME"
 echo "🔑 Using service B name: $SVC_B_NAME"
 echo "🔑 Using container name: $CONTAINER_NAME"
+echo "🔑 Using subdomain: $SUBDOMAIN"
+
 # Determine active and idle services
 BLUE_TG_ARN=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" \
-  --query "Rules[?Conditions[?Field=='path-pattern'] | [?Values[0]=='/*']].Actions[0].TargetGroupArn" \
+  --query "Rules[?contains(Conditions[?Field=='path-pattern'].Values | [0], '/*') && \
+                  contains(Conditions[?Field=='host-header'].Values | [0], '$SUBDOMAIN')] \
+           .Actions[0].TargetGroupArn" \
   --output text)
 
 TG_A_ARN=$(aws elbv2 describe-target-groups --names "$TG_A_NAME" \
@@ -95,8 +100,22 @@ echo "🔎 Fetching listener rules..."
 RULES=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN")
 
 # Extract the Rule ARNs based on their path-pattern conditions
-BLUE_RULE_ARN=$(echo "$RULES" | jq -r '.Rules[] | select(.Conditions[].Values[]? == "/*") | .RuleArn')
-GREEN_RULE_ARN=$(echo "$RULES" | jq -r '.Rules[] | select(.Conditions[].Values[]? == "/green/*") | .RuleArn')
+BLUE_RULE_ARN=$(echo "$RULES" | jq -r '
+  .Rules[] 
+  | select(
+      any(.Conditions[]; .Field == "path-pattern" and (.Values[]? == "/*")) and
+      any(.Conditions[]; .Field == "host-header" and (.Values[]? == '$SUBDOMAIN'))
+    )
+  | .RuleArn
+')
+GREEN_RULE_ARN=$(echo "$RULES" | jq -r '
+  .Rules[] 
+  | select(
+      any(.Conditions[]; .Field == "path-pattern" and (.Values[]? == "/green/*")) and
+      any(.Conditions[]; .Field == "host-header" and (.Values[]? == '$SUBDOMAIN'))
+    )
+  | .RuleArn
+')
 
 echo "🎯 Blue active TG ARN: $BLUE_TG_ARN"
 echo "🎯 Blue Rule ARN: $BLUE_RULE_ARN"

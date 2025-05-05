@@ -36,7 +36,9 @@ inputs:
   container-name:
     description: Name of the container
     required: true
-  
+  subdomain:
+    description: Subdomain
+    required: true
  
 
 runs:
@@ -59,5 +61,6 @@ runs:
           "${{ inputs.tg-b-name }}" \
           "${{ inputs.service-a-name }}" \
           "${{ inputs.service-b-name }}" \
-          "${{ inputs.container-name }}"
+          "${{ inputs.container-name }}" \
+          "${{ inputs.subdomain }}"
       shell: bash
