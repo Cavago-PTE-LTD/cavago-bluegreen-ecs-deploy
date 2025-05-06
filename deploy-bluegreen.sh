@@ -31,11 +31,37 @@ echo "🔑 Using container name: $CONTAINER_NAME"
 echo "🔑 Using subdomain: $SUBDOMAIN"
 
 # Determine active and idle services
-BLUE_TG_ARN=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" \
-  --query "Rules[?contains(Conditions[?Field=='path-pattern'].Values | [0], '/*') && \
-                  contains(Conditions[?Field=='host-header'].Values | [0], '$SUBDOMAIN')] \
-           .Actions[0].TargetGroupArn" \
-  --output text)
+RULES=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" --output json)
+
+BLUE_RULE_ARN=$(echo "$RULES" | jq -r --arg subdomain "$SUBDOMAIN" '
+  .Rules[] 
+  | select(
+      (.Conditions | any(.Field == "path-pattern" and (.Values // [] | index("/*")))) and
+      (.Conditions | any(.Field == "host-header" and (.Values // [] | index($subdomain))))
+    )
+  | .RuleArn
+')
+
+GREEN_RULE_ARN=$(echo "$RULES" | jq -r --arg subdomain "$SUBDOMAIN" '
+  .Rules[] 
+  | select(
+      (.Conditions | any(.Field == "path-pattern" and (.Values // [] | index("/green/*")))) and
+      (.Conditions | any(.Field == "host-header" and (.Values // [] | index($subdomain))))
+    )
+  | .RuleArn
+')
+
+BLUE_TG_ARN=$(echo "$RULES" | jq -r --arg subdomain "$SUBDOMAIN" '
+  .Rules[] 
+  | select(
+      (.Conditions | any(.Field == "path-pattern" and (.Values // [] | index("/*")))) and
+      (.Conditions | any(.Field == "host-header" and (.Values // [] | index($subdomain))))
+    )
+  | .Actions[] 
+  | select(.Type == "forward") 
+  | .TargetGroupArn
+')
+
 
 TG_A_ARN=$(aws elbv2 describe-target-groups --names "$TG_A_NAME" \
   --query "TargetGroups[0].TargetGroupArn" --output text)
@@ -94,28 +120,6 @@ echo "⏳ Waiting for $GREEN_SVC to stabilize..."
 aws ecs wait services-stable \
   --cluster "$CLUSTER_NAME" \
   --services "$GREEN_SVC"
-
-# Fetch all listener rules for the given listener ARN
-echo "🔎 Fetching listener rules..."
-RULES=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN")
-
-# Extract the Rule ARNs based on their path-pattern conditions
-BLUE_RULE_ARN=$(echo "$RULES" | jq -r '
-  .Rules[] 
-  | select(
-      any(.Conditions[]; .Field == "path-pattern" and (.Values[]? == "/*")) and
-      any(.Conditions[]; .Field == "host-header" and (.Values[]? == '$SUBDOMAIN'))
-    )
-  | .RuleArn
-')
-GREEN_RULE_ARN=$(echo "$RULES" | jq -r '
-  .Rules[] 
-  | select(
-      any(.Conditions[]; .Field == "path-pattern" and (.Values[]? == "/green/*")) and
-      any(.Conditions[]; .Field == "host-header" and (.Values[]? == '$SUBDOMAIN'))
-    )
-  | .RuleArn
-')
 
 echo "🎯 Blue active TG ARN: $BLUE_TG_ARN"
 echo "🎯 Blue Rule ARN: $BLUE_RULE_ARN"
