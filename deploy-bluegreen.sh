@@ -129,13 +129,13 @@ echo "🎯 Green Rule ARN (if exists): $GREEN_RULE_ARN"
 echo "🔧 Updating blue rule to /green/*"
 aws elbv2 modify-rule \
   --rule-arn "$BLUE_RULE_ARN" \
-  --conditions Field=path-pattern,Values="/green/*"  
+  --conditions "Field=host-header,Values=$SUBDOMAIN" "Field=path-pattern,Values="/green/*"  
 
 # Update green rule (new deployment): promote to /* 
 echo "🔧 Updating green rule to /*"
 aws elbv2 modify-rule \
   --rule-arn "$GREEN_RULE_ARN" \
-  --conditions Field=path-pattern,Values="/*"  
+  --conditions "Field=host-header,Values=$SUBDOMAIN" "Field=path-pattern,Values="/*"  
 
 echo "✅ ALB path patterns and priorities updated!"
 
