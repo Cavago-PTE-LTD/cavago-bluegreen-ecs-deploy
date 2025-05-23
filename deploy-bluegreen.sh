@@ -107,6 +107,10 @@ done
 JQ_CMD=${JQ_CMD%,} # Remove trailing comma
 JQ_CMD+=']'
 
+# Debug: Print the updated task definition
+echo "📝 Updated task definition:"
+echo "$UPDATED_TASK_DEF" | jq '.'
+
 # Update all specified containers
 UPDATED_TASK_DEF=$(jq "$JQ_CMD" task-def.json)
 echo "$UPDATED_TASK_DEF" > new-task-def.json
