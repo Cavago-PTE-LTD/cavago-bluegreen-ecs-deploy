@@ -45,14 +45,14 @@ runs:
     - name: Run blue-green deploy script
       run: |
         ${{ github.action_path }}/deploy-bluegreen.sh \
-          "${{ inputs.environment }}" \          
-          "${{ inputs.cluster-name }}" \
-          "${{ inputs.task-def-name }}" \
-          "${{ inputs.listener-arn }}" \
-          "${{ inputs.tg-a-name }}" \
-          "${{ inputs.tg-b-name }}" \
-          "${{ inputs.service-a-name }}" \
-          "${{ inputs.service-b-name }}" \          
-          "${{ inputs.subdomain }}" \
-          '${{ inputs.container-updates }}'
+          "${{ inputs.environment }} \          
+           ${{ inputs.cluster-name }} \
+           ${{ inputs.task-def-name }} \
+           ${{ inputs.listener-arn }} \
+           ${{ inputs.tg-a-name }} \
+           ${{ inputs.tg-b-name }} \
+           ${{ inputs.service-a-name }} \
+           ${{ inputs.service-b-name }} \          
+           ${{ inputs.subdomain }} \
+           ${{ inputs.container-updates }}"
       shell: bash
