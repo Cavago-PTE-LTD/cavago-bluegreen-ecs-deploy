@@ -54,5 +54,5 @@ runs:
           "${{ inputs.service-a-name }}" \
           "${{ inputs.service-b-name }}" \          
           "${{ inputs.subdomain }}" \
-          "${{ inputs.container-updates }}"
+          '${{ inputs.container-updates }}'
       shell: bash

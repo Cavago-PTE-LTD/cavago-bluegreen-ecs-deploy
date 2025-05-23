@@ -1,6 +1,13 @@
 #!/bin/bash
 set -e
 
+# Debug: Print all arguments
+echo "Number of arguments: $#"
+echo "Arguments received:"
+for ((i=1; i<=$#; i++)); do
+    echo "Argument $i: ${!i}"
+done
+
 # Input parameters
 ENVIRONMENT="$1"
 CLUSTER_NAME="$2"
