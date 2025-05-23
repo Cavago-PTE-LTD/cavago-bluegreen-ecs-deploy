@@ -13,9 +13,6 @@ SVC_B_NAME="$8"
 SUBDOMAIN="$9"
 CONTAINER_UPDATES="${10}"
 
-# Convert container updates string to array
-IFS=',' read -ra CONTAINER_PAIRS <<< "$CONTAINER_UPDATES"
-
 echo "🔑 Starting A/B deployment for environment: $ENVIRONMENT"
 echo "🔑 Using cluster name: $CLUSTER_NAME"
 echo "🔑 Using task definition name: $TASK_DEF_NAME"
@@ -25,6 +22,10 @@ echo "🔑 Using target group B name: $TG_B_NAME"
 echo "🔑 Using service A name: $SVC_A_NAME"
 echo "🔑 Using service B name: $SVC_B_NAME"
 echo "🔑 Using subdomain: $SUBDOMAIN"
+
+# Convert container updates string to array
+IFS=',' read -ra CONTAINER_PAIRS <<< "$CONTAINER_UPDATES"
+
 echo "🔑 Using container updates:"
 for pair in "${CONTAINER_PAIRS[@]}"; do
     IFS=':' read -r container image <<< "$pair"
