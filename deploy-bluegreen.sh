@@ -3,23 +3,20 @@ set -e
 
 # Input parameters
 ENVIRONMENT="$1"
-IMAGE_TAG="$2"
-ECR_URI="$3"
-CLUSTER_NAME="$4"
-TASK_DEF_NAME="$5"
-LISTENER_ARN="$6"
-TG_A_NAME="$7"
-TG_B_NAME="$8"
-SVC_A_NAME="$9"
-SVC_B_NAME="${10}"
-CONTAINER_NAME="${11}"
-SUBDOMAIN="${12}"
+CLUSTER_NAME="$2"
+TASK_DEF_NAME="$3"
+LISTENER_ARN="$4"
+TG_A_NAME="$5"
+TG_B_NAME="$6"
+SVC_A_NAME="$7"
+SVC_B_NAME="$8"
+SUBDOMAIN="$9"
+CONTAINER_UPDATES="${10}"
 
-NEW_IMAGE="$ECR_URI:$IMAGE_TAG"
+# Convert container updates string to array
+IFS=',' read -ra CONTAINER_PAIRS <<< "$CONTAINER_UPDATES"
 
-echo "🔄 Starting A/B deployment for environment: $ENVIRONMENT"
-echo "🖼️  Deploying image tag: $IMAGE_TAG"
-echo "🔑 Using ECR URI: $ECR_URI"
+echo "🔑 Starting A/B deployment for environment: $ENVIRONMENT"
 echo "🔑 Using cluster name: $CLUSTER_NAME"
 echo "🔑 Using task definition name: $TASK_DEF_NAME"
 echo "🔑 Using listener ARN: $LISTENER_ARN"
@@ -27,8 +24,12 @@ echo "🔑 Using target group A name: $TG_A_NAME"
 echo "🔑 Using target group B name: $TG_B_NAME"
 echo "🔑 Using service A name: $SVC_A_NAME"
 echo "🔑 Using service B name: $SVC_B_NAME"
-echo "🔑 Using container name: $CONTAINER_NAME"
 echo "🔑 Using subdomain: $SUBDOMAIN"
+echo "🔑 Using container updates:"
+for pair in "${CONTAINER_PAIRS[@]}"; do
+    IFS=':' read -r container image <<< "$pair"
+    echo "   - $container: $image"
+done
 
 # Determine active and idle services
 RULES=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" --output json)
@@ -89,15 +90,17 @@ aws ecs describe-task-definition --task-definition "$TASK_DEF_NAME" > task-def.j
 echo "📦 Existing container names:"
 jq '.taskDefinition.containerDefinitions[].name' task-def.json
 
-# Update only the container you care about
-UPDATED_TASK_DEF=$(jq --arg IMAGE "$NEW_IMAGE" --arg CONTAINER "$CONTAINER_NAME" '
-  .taskDefinition
-  | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
-  | .containerDefinitions = [
-      (.containerDefinitions[] | select(.name == $CONTAINER) | .image = $IMAGE)
-    ]
-' task-def.json)
+# Build jq command dynamically for multiple container updates
+JQ_CMD='.taskDefinition | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) | .containerDefinitions = ['
+for pair in "${CONTAINER_PAIRS[@]}"; do
+    IFS=':' read -r container image <<< "$pair"
+    JQ_CMD+="(.containerDefinitions[] | select(.name == \"$container\") | .image = \"$image\"),"
+done
+JQ_CMD=${JQ_CMD%,} # Remove trailing comma
+JQ_CMD+=']'
 
+# Update all specified containers
+UPDATED_TASK_DEF=$(jq "$JQ_CMD" task-def.json)
 echo "$UPDATED_TASK_DEF" > new-task-def.json
 
 echo "📤 Registering new task definition..."

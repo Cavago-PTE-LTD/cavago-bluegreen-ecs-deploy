@@ -5,13 +5,7 @@ author: Yushin Son
 inputs:
   environment:
     description: Environment name
-    required: true
-  image-tag:
-    description: Docker image tag
-    required: true
-  ecr-uri:
-    description: ECR URI
-    required: true
+    required: true  
   cluster-name:
     description: Name of the ECS cluster
     required: true
@@ -32,12 +26,12 @@ inputs:
     required: true
   service-b-name:
     description: Name of ECS service B
-    required: true
-  container-name:
-    description: Name of the container
-    required: true
+    required: true  
   subdomain:
     description: Subdomain
+    required: true
+  container-updates:
+    description: Comma separated list of container:image pairs (e.g., "web:123.dkr.ecr.region.amazonaws.com/web:latest,worker:123.dkr.ecr.region.amazonaws.com/worker:latest")
     required: true
  
 
@@ -51,16 +45,14 @@ runs:
     - name: Run blue-green deploy script
       run: |
         ${{ github.action_path }}/deploy-bluegreen.sh \
-          "${{ inputs.environment }}" \
-          "${{ inputs.image-tag }}" \
-          "${{ inputs.ecr-uri }}" \
+          "${{ inputs.environment }}" \          
           "${{ inputs.cluster-name }}" \
           "${{ inputs.task-def-name }}" \
           "${{ inputs.listener-arn }}" \
           "${{ inputs.tg-a-name }}" \
           "${{ inputs.tg-b-name }}" \
           "${{ inputs.service-a-name }}" \
-          "${{ inputs.service-b-name }}" \
-          "${{ inputs.container-name }}" \
-          "${{ inputs.subdomain }}"
+          "${{ inputs.service-b-name }}" \          
+          "${{ inputs.subdomain }}" \
+          "${{ inputs.container-updates }}"
       shell: bash
