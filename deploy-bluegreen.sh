@@ -109,7 +109,7 @@ JQ_CMD+=']'
 
 # Debug: Print the updated task definition
 echo "📝 Updated task definition:"
-echo "$UPDATED_TASK_DEF" | jq '.'
+echo "$UPDATED_TASK_DEF"
 
 # Update all specified containers
 UPDATED_TASK_DEF=$(jq "$JQ_CMD" task-def.json)
