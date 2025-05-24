@@ -95,25 +95,62 @@ fi
 echo "📥 Fetching current task definition for: $TASK_DEF_NAME"
 aws ecs describe-task-definition --task-definition "$TASK_DEF_NAME" > task-def.json
 
-echo "📦 Existing container names:"
-jq '.taskDefinition.containerDefinitions[].name' task-def.json
+echo "📦 Current container definitions:"
+jq '.taskDefinition.containerDefinitions[] | {name: .name, image: .image}' task-def.json
 
-# Build jq command dynamically for multiple container updates
-JQ_CMD='.taskDefinition | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) | .containerDefinitions = ['
-for pair in "${CONTAINER_PAIRS[@]}"; do
-    IFS=':' read -r container image <<< "$pair"
-    JQ_CMD+="(.containerDefinitions[] | select(.name == \"$container\") | .image = \"$image\"),"
-done
-JQ_CMD=${JQ_CMD%,} # Remove trailing comma
-JQ_CMD+=']'
+# Check service configuration
+echo "🔍 Checking service configuration..."
+aws ecs describe-services --cluster "$CLUSTER_NAME" --services "$SVC_A_NAME" > service-a.json
+aws ecs describe-services --cluster "$CLUSTER_NAME" --services "$SVC_B_NAME" > service-b.json
+
+echo "📦 Service A container names:"
+jq '.services[0].taskDefinition' service-a.json
+echo "📦 Service B container names:"
+jq '.services[0].taskDefinition' service-b.json
+
+# Create a temporary file for the jq command
+cat > update.jq << 'EOF'
+.taskDefinition 
+| del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) 
+| .containerDefinitions = (
+    .containerDefinitions 
+    | map(
+        if .name == "cavago-web-nginx-container" then 
+          . + {"image": $image1}
+        elif .name == "cavago-web-php-fpm-container" then 
+          . + {"image": $image2}
+        else 
+          .
+        end
+      )
+  )
+EOF
+
+# Extract container names and images
+IFS=':' read -r container1 image1 <<< "${CONTAINER_PAIRS[0]}"
+IFS=':' read -r container2 image2 <<< "${CONTAINER_PAIRS[1]}"
+
+echo "🔧 Updating containers:"
+echo "   - cavago-web-nginx-container: $image1"
+echo "   - cavago-web-php-fpm-container: $image2"
+
+# Update all specified containers
+UPDATED_TASK_DEF=$(jq --arg image1 "$image1" \
+                      --arg image2 "$image2" \
+                      -f update.jq task-def.json)
 
 # Debug: Print the updated task definition
 echo "📝 Updated task definition:"
-echo "$UPDATED_TASK_DEF"
+echo "$UPDATED_TASK_DEF" | jq '.'
 
-# Update all specified containers
-UPDATED_TASK_DEF=$(jq "$JQ_CMD" task-def.json)
+# Debug: Print container definitions after update
+echo "📦 Updated container definitions:"
+echo "$UPDATED_TASK_DEF" | jq '.containerDefinitions[] | {name: .name, image: .image}'
+
 echo "$UPDATED_TASK_DEF" > new-task-def.json
+
+# Clean up temporary files
+rm update.jq service-a.json service-b.json
 
 echo "📤 Registering new task definition..."
 NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
@@ -155,7 +192,7 @@ aws elbv2 modify-rule \
 echo "✅ ALB path patterns and priorities updated!"
 
 # Optionally, scale down the old service
-echo "🧹 Scaling down old service: $ACTIVE_SVC"
+echo "🧹 Scaling down old service: $BLUE_SVC"
 aws ecs update-service --cluster "$CLUSTER_NAME" --service "$BLUE_SVC" --desired-count 0
 
 echo "✅ A/B deployment complete!"
