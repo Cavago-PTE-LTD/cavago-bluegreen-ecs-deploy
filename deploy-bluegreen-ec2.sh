@@ -17,8 +17,9 @@ ASG_A_NAME="$5"          # Auto Scaling Group A name
 ASG_B_NAME="$6"          # Auto Scaling Group B name
 SUBDOMAIN="$7"           # Subdomain for the application
 LAUNCH_TEMPLATE_NAME="$8" # Launch template name
-ZIP_FILE_NAME="$9"    # Name of the ZIP file containing application code
-USER_DATA_SCRIPT="${10}" # User data script content
+LAUNCH_TEMPLATE_VERSION="$9" # Launch template version
+ZIP_FILE_NAME="${10}"    # Name of the ZIP file containing application code
+
 
 echo "🔑 Starting Blue/Green deployment for environment: $ENVIRONMENT"
 echo "🔑 Using listener ARN: $LISTENER_ARN"
@@ -28,25 +29,7 @@ echo "🔑 Using ASG A name: $ASG_A_NAME"
 echo "🔑 Using ASG B name: $ASG_B_NAME"
 echo "🔑 Using subdomain: $SUBDOMAIN"
 echo "🔑 Using launch template: $LAUNCH_TEMPLATE_NAME (version: $LAUNCH_TEMPLATE_VERSION)"
-echo "🔑 Using deployment package: $ZIP_FILE_PATH"
-echo "🔑 Using user data script: $USER_DATA_SCRIPT"
-
-# Get the current launch template version
-LAUNCH_TEMPLATE_VERSION=$(aws ec2 describe-launch-templates --launch-template-names "$LAUNCH_TEMPLATE_NAME" --query "LaunchTemplates[0].LatestVersionNumber" --output text)
-
-echo "🔑 Using launch template version: $LAUNCH_TEMPLATE_VERSION"
-
-# Create a new launch template version with updated user data
-echo "📦 Creating new launch template version with updated user data..."
-NEW_TEMPLATE_VERSION=$(aws ec2 create-launch-template-version \
-    --launch-template-name "$LAUNCH_TEMPLATE_NAME" \
-    --source-version "$LAUNCH_TEMPLATE_VERSION" \
-    --launch-template-data "UserData=$(echo "$USER_DATA_SCRIPT" | base64 -w 0)" \
-    --query "LaunchTemplateVersion.VersionNumber" \
-    --output text)
-
-echo "📦 New launch template version created: $NEW_TEMPLATE_VERSION"
-LAUNCH_TEMPLATE_VERSION=$NEW_TEMPLATE_VERSION
+echo "🔑 Using deployment package: $ZIP_FILE_NAME"
 
 # Get target group ARNs
 TG_A_ARN=$(aws elbv2 describe-target-groups --names "$TG_A_NAME" \
