@@ -32,7 +32,7 @@ echo "🔑 Using deployment package: $ZIP_FILE_PATH"
 echo "🔑 Using user data script: $USER_DATA_SCRIPT"
 
 # Get the current launch template version
-LAUNCH_TEMPLATE_VERSION=$(aws ec2 describe-launch-templates --launch-template-names "$LAUNCH_TEMPLATE_NAME" --query "LaunchTemplates[0].DefaultVersion" --output text)
+LAUNCH_TEMPLATE_VERSION=$(aws ec2 describe-launch-templates --launch-template-names "$LAUNCH_TEMPLATE_NAME" --query "LaunchTemplates[0].LatestVersionNumber" --output text)
 
 echo "🔑 Using launch template version: $LAUNCH_TEMPLATE_VERSION"
 
@@ -98,8 +98,10 @@ elif [ "$BLUE_TG_ARN" == "$TG_B_ARN" ]; then
     GREEN_ASG="$ASG_A_NAME"
     GREEN_TG_ARN="$TG_A_ARN"
 else
-    echo "❌ Unable to determine active target group."
-    exit 1
+    echo "No active target group found. Deploying to A by default."
+    BLUE_ASG="$ASG_B_NAME"
+    GREEN_ASG="$ASG_A_NAME"
+    GREEN_TG_ARN="$TG_A_ARN"
 fi
 
 # Update the idle ASG to use specified launch template version
