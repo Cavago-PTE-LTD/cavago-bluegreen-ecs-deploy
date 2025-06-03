@@ -119,15 +119,15 @@ runs:
       if: inputs.deployment-type == 'ec2'
       shell: bash
       run: |
-        echo "Current working directory: $(pwd)"
-        echo "Directory contents:"
-        ls -la
+        echo "Action directory: $GITHUB_ACTION_PATH"
+        echo "Action directory contents:"
+        ls -la "$GITHUB_ACTION_PATH"
 
     - name: EC2 Deployment
       if: inputs.deployment-type == 'ec2'
       shell: bash
       run: |
-        ./deploy-bluegreen-ec2.sh \
+        "$GITHUB_ACTION_PATH/deploy-bluegreen-ec2.sh" \
           "${{ inputs.environment }}" \
           "${{ inputs.listener-arn }}" \
           "${{ inputs.target-group-A }}" \
@@ -144,7 +144,7 @@ runs:
       if: inputs.deployment-type == 'ecs'
       shell: bash
       run: |
-        ./deploy-bluegreen-ecs.sh \
+        "$GITHUB_ACTION_PATH/deploy-bluegreen-ecs.sh" \
           "${{ inputs.environment }}" \
           "${{ inputs.listener-arn }}" \
           "${{ inputs.target-group-blue }}" \
