@@ -90,8 +90,7 @@ runs:
             echo "- asg-A"
             echo "- asg-B"
             echo "- launch-template-name"
-            echo "- zip-file-path"            
-            echo "- user-data-script"
+            echo "- zip-file-path"                        
             exit 1
           fi
         elif [ "${{ inputs.deployment-type }}" = "ecs" ]; then
