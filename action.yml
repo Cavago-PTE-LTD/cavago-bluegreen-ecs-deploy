@@ -74,18 +74,23 @@ runs:
       run: |
         if [ "${{ inputs.deployment-type }}" = "ec2" ]; then
           # Validate EC2 specific parameters
-          if [ -z "${{ inputs.asg-blue }}" ] || [ -z "${{ inputs.asg-green }}" ] || \
-             [ -z "${{ inputs.launch-template-name }}" ] || [ -z "${{ inputs.launch-template-version }}" ] || \
-             [ -z "${{ inputs.zip-file-name }}" ] || [ -z "${{ inputs.s3-bucket }}" ] || \
+          if [ -z "${{ inputs.environment }}" ] || [ -z "${{ inputs.listener-arn }}" ] || \
+             [ -z "${{ inputs.target-group-A }}" ] || [ -z "${{ inputs.target-group-B }}" ] || \
+             [ -z "${{ inputs.asg-A }}" ] || [ -z "${{ inputs.asg-B }}" ] || \
+             [ -z "${{ inputs.subdomain }}" ] || \
+             [ -z "${{ inputs.launch-template-name }}" ] || \
+             [ -z "${{ inputs.zip-file-path }}" ] || \
              [ -z "${{ inputs.user-data-script }}" ]; then
             echo "❌ Missing required parameters for EC2 deployment"
             echo "Required parameters for EC2 deployment:"
-            echo "- asg-blue"
-            echo "- asg-green"
+            echo "- environment"
+            echo "- listener-arn"
+            echo "- target-group-A"
+            echo "- target-group-B"
+            echo "- asg-A"
+            echo "- asg-B"
             echo "- launch-template-name"
-            echo "- launch-template-version"
-            echo "- zip-file-name"
-            echo "- s3-bucket"
+            echo "- zip-file-path"            
             echo "- user-data-script"
             exit 1
           fi
@@ -123,15 +128,13 @@ runs:
         ./deploy-bluegreen-ec2.sh \
           "${{ inputs.environment }}" \
           "${{ inputs.listener-arn }}" \
-          "${{ inputs.target-group-blue }}" \
-          "${{ inputs.target-group-green }}" \
-          "${{ inputs.asg-blue }}" \
-          "${{ inputs.asg-green }}" \
+          "${{ inputs.target-group-A }}" \
+          "${{ inputs.target-group-B }}" \
+          "${{ inputs.asg-A }}" \
+          "${{ inputs.asg-B }}" \
           "${{ inputs.subdomain }}" \
-          "${{ inputs.launch-template-name }}" \
-          "${{ inputs.launch-template-version }}" \
-          "${{ inputs.zip-file-name }}" \
-          "${{ inputs.s3-bucket }}" \
+          "${{ inputs.launch-template-name }}" \          
+          "${{ inputs.zip-file-path }}" \          
           "${{ inputs.user-data-script }}"
 
     # ECS Deployment
