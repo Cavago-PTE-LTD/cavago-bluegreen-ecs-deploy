@@ -115,6 +115,14 @@ runs:
         fi    
 
     # EC2 Deployment
+    - name: Print working directory
+      if: inputs.deployment-type == 'ec2'
+      shell: bash
+      run: |
+        echo "Current working directory: $(pwd)"
+        echo "Directory contents:"
+        ls -la
+
     - name: EC2 Deployment
       if: inputs.deployment-type == 'ec2'
       shell: bash
@@ -129,7 +137,7 @@ runs:
           "${{ inputs.subdomain }}" \
           "${{ inputs.launch-template-name }}" \
           "${{ inputs.launch-template-version }}" \          
-          "${{ inputs.zip-file-path }}"          
+          "${{ inputs.zip-file-path }}"
 
     # ECS Deployment
     - name: ECS Deployment
