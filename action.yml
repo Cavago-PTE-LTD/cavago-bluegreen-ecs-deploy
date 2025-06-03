@@ -112,13 +112,7 @@ runs:
           echo "❌ Invalid deployment type: ${{ inputs.deployment-type }}"
           echo "Supported deployment types: ecs, ec2"
           exit 1
-        fi
-
-    - name: Make deployment scripts executable
-      shell: bash
-      run: |
-        chmod +x ./deploy-bluegreen-ec2.sh
-        chmod +x ./deploy-bluegreen-ecs.sh
+        fi    
 
     # EC2 Deployment
     - name: EC2 Deployment
