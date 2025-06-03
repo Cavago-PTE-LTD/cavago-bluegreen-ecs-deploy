@@ -1,44 +1,37 @@
-name: 'Blue-Green Deployment'
-description: 'Deploy to EC2 instances or ECS services using blue-green deployment strategy'
+name: 'Blue/Green Deployment'
+description: 'Deploy applications using blue/green deployment strategy for both ECS and EC2'
 
 inputs:
   deployment-type:
-    description: 'Type of deployment (ec2 or ecs)'
+    description: 'Type of deployment (ecs or ec2)'
     required: true
-    default: 'ec2'
   environment:
     description: 'Environment to deploy to (dev, staging, prod)'
     required: true
   listener-arn:
     description: 'ARN of the ALB listener'
     required: true
-  target-group-blue:
-    description: 'Name of the blue target group'
+  target-group-A:
+    description: 'Name of the A target group'
     required: true
-  target-group-green:
-    description: 'Name of the green target group'
+  target-group-B:
+    description: 'Name of the B target group'
     required: true
   # EC2 specific parameters
-  asg-blue:
-    description: 'Name of the blue Auto Scaling Group (required for EC2 deployment)'
+  asg-A:
+    description: 'Name of the A Auto Scaling Group (required for EC2 deployment)'
     required: false
-  asg-green:
-    description: 'Name of the green Auto Scaling Group (required for EC2 deployment)'
-    required: false
-  ami-id:
-    description: 'ID of the AMI to deploy (required for EC2 deployment)'
+  asg-B:
+    description: 'Name of the B Auto Scaling Group (required for EC2 deployment)'
     required: false
   launch-template-name:
     description: 'Name of the launch template (required for EC2 deployment)'
-    required: false
-  launch-template-version:
-    description: 'Version of the launch template to use as base (required for EC2 deployment)'
-    required: false
-  zip-file-name:
+    required: false  
+  zip-file-path:
     description: 'Name of the ZIP file containing application code (required for EC2 deployment)'
     required: false
-  s3-bucket:
-    description: 'S3 bucket containing the deployment package (required for EC2 deployment)'
+  user-data-script:
+    description: 'Content of the user data script (required for EC2 deployment)'
     required: false
   # ECS specific parameters
   cluster-name:
@@ -48,13 +41,13 @@ inputs:
     description: 'Name of the task definition (required for ECS deployment)'
     required: false
   service-blue:
-    description: 'Name of the blue ECS service (required for ECS deployment)'
+    description: 'Name of the blue service (required for ECS deployment)'
     required: false
   service-green:
-    description: 'Name of the green ECS service (required for ECS deployment)'
+    description: 'Name of the green service (required for ECS deployment)'
     required: false
   container-updates:
-    description: 'Comma separated list of container:image pairs for ECS deployment (e.g., "web:123.dkr.ecr.region.amazonaws.com/web:latest,worker:123.dkr.ecr.region.amazonaws.com/worker:latest")'
+    description: 'JSON string containing container updates (required for ECS deployment)'
     required: false
   # Common parameters
   subdomain:
@@ -76,28 +69,43 @@ runs:
       with:
         aws-region: ${{ inputs.aws-region }}
 
-    - name: Validate required parameters
+    - name: Validate Inputs
       shell: bash
       run: |
-        if [ "${{ inputs.deployment-type }}" == "ec2" ]; then
-          # Check all EC2 parameters including application code
+        if [ "${{ inputs.deployment-type }}" = "ec2" ]; then
+          # Validate EC2 specific parameters
           if [ -z "${{ inputs.asg-blue }}" ] || [ -z "${{ inputs.asg-green }}" ] || \
-             [ -z "${{ inputs.ami-id }}" ] || [ -z "${{ inputs.launch-template-name }}" ] || \
-             [ -z "${{ inputs.launch-template-version }}" ] || [ -z "${{ inputs.zip-file-name }}" ] || \
-             [ -z "${{ inputs.s3-bucket }}" ]; then
+             [ -z "${{ inputs.launch-template-name }}" ] || [ -z "${{ inputs.launch-template-version }}" ] || \
+             [ -z "${{ inputs.zip-file-name }}" ] || [ -z "${{ inputs.s3-bucket }}" ] || \
+             [ -z "${{ inputs.user-data-script }}" ]; then
             echo "❌ Missing required parameters for EC2 deployment"
-            echo "❌ EC2 deployment requires all parameters including application code (zip-file-name and s3-bucket)"
+            echo "Required parameters for EC2 deployment:"
+            echo "- asg-blue"
+            echo "- asg-green"
+            echo "- launch-template-name"
+            echo "- launch-template-version"
+            echo "- zip-file-name"
+            echo "- s3-bucket"
+            echo "- user-data-script"
             exit 1
           fi
-        elif [ "${{ inputs.deployment-type }}" == "ecs" ]; then
+        elif [ "${{ inputs.deployment-type }}" = "ecs" ]; then
+          # Validate ECS specific parameters
           if [ -z "${{ inputs.cluster-name }}" ] || [ -z "${{ inputs.task-def-name }}" ] || \
              [ -z "${{ inputs.service-blue }}" ] || [ -z "${{ inputs.service-green }}" ] || \
              [ -z "${{ inputs.container-updates }}" ]; then
             echo "❌ Missing required parameters for ECS deployment"
+            echo "Required parameters for ECS deployment:"
+            echo "- cluster-name"
+            echo "- task-def-name"
+            echo "- service-blue"
+            echo "- service-green"
+            echo "- container-updates"
             exit 1
           fi
         else
           echo "❌ Invalid deployment type: ${{ inputs.deployment-type }}"
+          echo "Supported deployment types: ecs, ec2"
           exit 1
         fi
 
@@ -107,8 +115,8 @@ runs:
         chmod +x ./deploy-bluegreen-ec2.sh
         chmod +x ./deploy-bluegreen-ecs.sh
 
-    # EC2 Deployment 
-    - name: Deploy EC2
+    # EC2 Deployment
+    - name: EC2 Deployment
       if: inputs.deployment-type == 'ec2'
       shell: bash
       run: |
@@ -120,24 +128,24 @@ runs:
           "${{ inputs.asg-blue }}" \
           "${{ inputs.asg-green }}" \
           "${{ inputs.subdomain }}" \
-          "${{ inputs.ami-id }}" \
           "${{ inputs.launch-template-name }}" \
           "${{ inputs.launch-template-version }}" \
           "${{ inputs.zip-file-name }}" \
-          "${{ inputs.s3-bucket }}"
+          "${{ inputs.s3-bucket }}" \
+          "${{ inputs.user-data-script }}"
 
     # ECS Deployment
-    - name: Deploy ECS
+    - name: ECS Deployment
       if: inputs.deployment-type == 'ecs'
       shell: bash
       run: |
         ./deploy-bluegreen-ecs.sh \
           "${{ inputs.environment }}" \
-          "${{ inputs.cluster-name }}" \
-          "${{ inputs.task-def-name }}" \
           "${{ inputs.listener-arn }}" \
           "${{ inputs.target-group-blue }}" \
           "${{ inputs.target-group-green }}" \
+          "${{ inputs.cluster-name }}" \
+          "${{ inputs.task-def-name }}" \
           "${{ inputs.service-blue }}" \
           "${{ inputs.service-green }}" \
           "${{ inputs.subdomain }}" \
