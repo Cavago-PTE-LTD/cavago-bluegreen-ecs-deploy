@@ -2,7 +2,7 @@ name: 'Blue/Green Deployment'
 description: 'Deploy applications using blue/green deployment strategy for both ECS and EC2'
 
 inputs:
-# Common parameters
+  # Common parameters
   deployment-type:
     description: 'Type of deployment (ecs or ec2)'
     required: true  
@@ -35,8 +35,8 @@ inputs:
   cluster-name:
     description: 'Name of the ECS cluster (required for ECS deployment)'
     required: false
-  task-def-name:
-    description: 'Name of the task definition (required for ECS deployment)'
+  task-def-arn:
+    description: 'ARN of the task definition (required for ECS deployment)'
     required: false
   service-A-name:
     description: 'Name of the blue service (required for ECS deployment)'
@@ -86,7 +86,7 @@ runs:
 
           if [ -z "${{ inputs.environment }}" ] || [ -z "${{ inputs.subdomain }}" ] || \      
              [ -z "${{ inputs.desired-count }}" ] || [ -z "${{ inputs.cluster-name }}" ] || \
-             [ -z "${{ inputs.task-def-name }}" ] || [ -z "${{ inputs.service-A-name }}" ] || \
+             [ -z "${{ inputs.task-def-arn }}" ] || [ -z "${{ inputs.service-A-name }}" ] || \
              [ -z "${{ inputs.service-B-name }}" ]; then
             echo "❌ Missing required parameters for ECS deployment"
             echo "Required parameters for ECS deployment:"
@@ -94,7 +94,7 @@ runs:
             echo "- subdomain"
             echo "- desired-count"
             echo "- cluster-name"
-            echo "- task-def-name"
+            echo "- task-def-arn"
             echo "- service-A-name"
             echo "- service-B-name"
             exit 1
@@ -138,7 +138,7 @@ runs:
         "$GITHUB_ACTION_PATH/deploy-bluegreen-ecs.sh" \
           "${{ inputs.environment }}" \                    
           "${{ inputs.cluster-name }}" \
-          "${{ inputs.task-def-name }}" \
+          "${{ inputs.task-def-arn }}" \
           "${{ inputs.service-A-name }}" \
           "${{ inputs.service-B-name }}" \
           "${{ inputs.subdomain }}" \

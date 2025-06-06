@@ -11,7 +11,7 @@ done
 # Input parameters
 ENVIRONMENT="$1"
 CLUSTER_NAME="$2"
-TASK_DEF_NAME="$3"
+TASK_DEF_ARN="$3"
 SERVICE_A_NAME="$4"
 SERVICE_B_NAME="$5"
 SUBDOMAIN="$6"
@@ -19,7 +19,7 @@ DESIRED_COUNT="$7"
 
 echo "🔑 Starting A/B deployment for environment: $ENVIRONMENT"
 echo "🔑 Using cluster name: $CLUSTER_NAME"
-echo "🔑 Using task definition name: $TASK_DEF_NAME"
+echo "🔑 Using task definition name: $TASK_DEF_ARN"
 echo "🔑 Using listener ARN: $LISTENER_ARN"
 
 echo "🔑 Using service A name: $SERVICE_A_NAME"
@@ -102,12 +102,7 @@ else
   exit 1
 fi
 
-TASK_DEF_ARN=$(aws ecs describe-task-definition \
-  --task-definition "$TASK_DEF_NAME" \
-  --query "taskDefinition.taskDefinitionArn" \
-  --output text)
 
-echo "🔑 Using task definition ARN: $TASK_DEF_ARN"
 
 
 # Update idle service to new image
