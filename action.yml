@@ -2,21 +2,19 @@ name: 'Blue/Green Deployment'
 description: 'Deploy applications using blue/green deployment strategy for both ECS and EC2'
 
 inputs:
-  deployment-type:
+# Common parameters
+deployment-type:
     description: 'Type of deployment (ecs or ec2)'
-    required: true
+    required: true  
   environment:
     description: 'Environment to deploy to (dev, staging, prod)'
     required: true
-  listener-arn:
-    description: 'ARN of the ALB listener'
-    required: true
-  target-group-A:
-    description: 'Name of the A target group'
-    required: true
-  target-group-B:
-    description: 'Name of the B target group'
-    required: true
+  subdomain:
+    description: 'Subdomain for the application'
+    required: true  
+  desired-count:
+    description: 'Desired count for the application'
+    required: true  
   # EC2 specific parameters
   asg-A:
     description: 'Name of the A Auto Scaling Group (required for EC2 deployment)'
@@ -40,23 +38,12 @@ inputs:
   task-def-name:
     description: 'Name of the task definition (required for ECS deployment)'
     required: false
-  service-blue:
+  service-A-name:
     description: 'Name of the blue service (required for ECS deployment)'
     required: false
-  service-green:
+  service-B-name:  
     description: 'Name of the green service (required for ECS deployment)'
-    required: false
-  container-updates:
-    description: 'JSON string containing container updates (required for ECS deployment)'
-    required: false
-  # Common parameters
-  subdomain:
-    description: 'Subdomain for the application'
-    required: true
-  aws-region:
-    description: 'AWS region to deploy to'
-    required: true
-    default: 'us-east-1'
+    required: false  
 
 runs:
   using: "composite"
@@ -95,19 +82,23 @@ runs:
             exit 1
           fi
         elif [ "${{ inputs.deployment-type }}" = "ecs" ]; then
-          # Validate ECS specific parameters
-          if [ -z "${{ inputs.cluster-name }}" ] || [ -z "${{ inputs.task-def-name }}" ] || \
-             [ -z "${{ inputs.service-blue }}" ] || [ -z "${{ inputs.service-green }}" ] || \
-             [ -z "${{ inputs.container-updates }}" ]; then
+          # Validate ECS specific parameters        
+
+          if [ -z "${{ inputs.environment }}" ] || [ -z "${{ inputs.subdomain }}" ] || \      
+             [ -z "${{ inputs.desired-count }}" ] || [ -z "${{ inputs.cluster-name }}" ] || \
+             [ -z "${{ inputs.task-def-name }}" ] || [ -z "${{ inputs.service-A-name }}" ] || \
+             [ -z "${{ inputs.service-B-name }}" ]; then
             echo "❌ Missing required parameters for ECS deployment"
             echo "Required parameters for ECS deployment:"
+            echo "- environment"
+            echo "- subdomain"
+            echo "- desired-count"
             echo "- cluster-name"
             echo "- task-def-name"
-            echo "- service-blue"
-            echo "- service-green"
-            echo "- container-updates"
+            echo "- service-A-name"
+            echo "- service-B-name"
             exit 1
-          fi
+          fi          
         else
           echo "❌ Invalid deployment type: ${{ inputs.deployment-type }}"
           echo "Supported deployment types: ecs, ec2"
@@ -145,13 +136,10 @@ runs:
       shell: bash
       run: |
         "$GITHUB_ACTION_PATH/deploy-bluegreen-ecs.sh" \
-          "${{ inputs.environment }}" \
-          "${{ inputs.listener-arn }}" \
-          "${{ inputs.target-group-blue }}" \
-          "${{ inputs.target-group-green }}" \
+          "${{ inputs.environment }}" \                    
           "${{ inputs.cluster-name }}" \
           "${{ inputs.task-def-name }}" \
-          "${{ inputs.service-blue }}" \
-          "${{ inputs.service-green }}" \
+          "${{ inputs.service-A-name }}" \
+          "${{ inputs.service-B-name }}" \
           "${{ inputs.subdomain }}" \
-          "${{ inputs.container-updates }}"
+          "${{ inputs.desired-count }}"
