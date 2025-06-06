@@ -50,7 +50,7 @@ echo "🔑 Using load balancer ARN: $LOAD_BALANCER_ARN"
 
 LISTENER_ARN=$(aws elbv2 describe-listeners \
   --load-balancer-arn "$LOAD_BALANCER_ARN" \
-  --query "Listeners[?Protocol==HTTPS].ListenerArn" \
+  --query "Listeners[?Protocol==\`HTTPS\`].ListenerArn" \
   --output text)
 
 echo "🔑 Using listener ARN: $LISTENER_ARN"
