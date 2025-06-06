@@ -73,7 +73,7 @@ runs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4.2.1
       with:
-        role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/${{ env.AWS_APP_DEPLOY_ROLE }}
+        role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/${{ env.AWS_APP_DEPLOY_ROLE }}
         aws-region: ${{ inputs.aws-region }}
 
     - name: Validate Inputs
