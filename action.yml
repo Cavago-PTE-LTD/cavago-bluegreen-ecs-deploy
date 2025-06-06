@@ -1,6 +1,10 @@
 name: 'Blue/Green Deployment'
 description: 'Deploy applications using blue/green deployment strategy for both ECS and EC2'
 
+permissions:
+  id-token: write
+  contents: read  
+
 inputs:
   # Common parameters
   deployment-type:
@@ -12,6 +16,9 @@ inputs:
   aws-region:
     description: 'AWS region to deploy to'
     required: true    
+  aws-account-id:
+    description: 'AWS account ID to deploy to'
+    required: true  
   subdomain:
     description: 'Subdomain for the application'
     required: true  
@@ -57,6 +64,7 @@ runs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4.2.1
       with:
+        role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/${{ env.AWS_APP_DEPLOY_ROLE }}
         aws-region: ${{ inputs.aws-region }}
 
     - name: Validate Inputs
