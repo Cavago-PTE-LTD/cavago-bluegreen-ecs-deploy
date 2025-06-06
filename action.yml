@@ -5,6 +5,9 @@ permissions:
   id-token: write
   contents: read  
 
+env:
+  AWS_APP_DEPLOY_ROLE: github-actions-deploy-role
+
 inputs:
   # Common parameters
   deployment-type:
