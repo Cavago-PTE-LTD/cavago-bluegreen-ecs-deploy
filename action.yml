@@ -9,6 +9,9 @@ inputs:
   environment:
     description: 'Environment to deploy to (dev, staging, prod)'
     required: true
+  aws-region:
+    description: 'AWS region to deploy to'
+    required: true    
   subdomain:
     description: 'Subdomain for the application'
     required: true  
@@ -52,7 +55,7 @@ runs:
       uses: actions/checkout@v3
 
     - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
+      uses: aws-actions/configure-aws-credentials@v4.2.1
       with:
         aws-region: ${{ inputs.aws-region }}
 
