@@ -138,9 +138,7 @@ runs:
       if: inputs.deployment-type == 'ecs'
       shell: bash
       run: |
-        "$GITHUB_ACTION_PATH/deploy-bluegreen-ecs.sh" \
-          "${{ inputs.environment }}" \                    
-          "${{ inputs.cluster-name }}" \
+        "$GITHUB_ACTION_PATH/deploy-bluegreen-ecs.sh" "${{ inputs.environment }}" "${{ inputs.cluster-name }}" \
           "${{ inputs.task-def-arn }}" \
           "${{ inputs.service-A-name }}" \
           "${{ inputs.service-B-name }}" \
