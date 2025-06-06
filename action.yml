@@ -3,7 +3,7 @@ description: 'Deploy applications using blue/green deployment strategy for both 
 
 inputs:
 # Common parameters
-deployment-type:
+  deployment-type:
     description: 'Type of deployment (ecs or ec2)'
     required: true  
   environment:
