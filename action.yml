@@ -27,10 +27,7 @@ inputs:
     required: true    
   desired-count:
     description: 'Desired count for the application'
-    required: true      
-  task-def-arn:
-    description: 'ARN of the task definition (required for ECS deployment)'
-    required: false  
+    required: true        
   image-tag:
     description: 'Image tag to deploy'
     required: true
@@ -45,15 +42,14 @@ runs:
 
         if [ -z "${{ inputs.app-name }}" ] || [ -z "${{ inputs.environment }}" ] || \      
             [ -z "${{ inputs.aws-region }}" ] || [ -z "${{ inputs.aws-account-id }}" ] || \ 
-            [ -z "${{ inputs.desired-count }}" ] || [ -z "${{ inputs.task-def-arn }}" ] || [ -z "${{ inputs.image-tag }}" ]; then
+            [ -z "${{ inputs.desired-count }}" ] || [ -z "${{ inputs.image-tag }}" ]; then
           echo "❌ Missing required parameters for ECS deployment"
           echo "Required parameters for ECS deployment:"
           echo "- app-name"
           echo "- environment"
           echo "- aws-region"
           echo "- aws-account-id"
-          echo "- desired-count"
-          echo "- task-def-arn"
+          echo "- desired-count"          
           echo "- image-tag"
           exit 1
         fi                  
