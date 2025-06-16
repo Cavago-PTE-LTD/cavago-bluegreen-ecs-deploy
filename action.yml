@@ -7,6 +7,9 @@ permissions:
 
 env:
   AWS_APP_DEPLOY_ROLE: github-actions-deploy-role
+  AWS_ECR_DEPLOY_ROLE: ecr-deploy-role  
+  AWS_ACCOUNT_ECR: "183295408589"
+  AWS_REGION_ECR: "us-east-1"
 
 inputs:
   # Common parameters
@@ -28,13 +31,89 @@ inputs:
   task-def-arn:
     description: 'ARN of the task definition (required for ECS deployment)'
     required: false  
+  image-tag:
+    description: 'Image tag to deploy'
+    required: true
 
 runs:
   using: "composite"
   steps:
+    - name: Validate Inputs
+      shell: bash
+      run: |        
+        # Validate parameters
+
+        if [ -z "${{ inputs.app-name }}" ] || [ -z "${{ inputs.environment }}" ] || \      
+            [ -z "${{ inputs.aws-region }}" ] || [ -z "${{ inputs.aws-account-id }}" ] || \ 
+            [ -z "${{ inputs.desired-count }}" ] || [ -z "${{ inputs.task-def-arn }}" ] || [ -z "${{ inputs.image-tag }}" ]; then
+          echo "❌ Missing required parameters for ECS deployment"
+          echo "Required parameters for ECS deployment:"
+          echo "- app-name"
+          echo "- environment"
+          echo "- aws-region"
+          echo "- aws-account-id"
+          echo "- desired-count"
+          echo "- task-def-arn"
+          echo "- image-tag"
+          exit 1
+        fi                  
+
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    - name: Configure AWS credentials
+      if: inputs.environment == 'dev'
+      uses: aws-actions/configure-aws-credentials@v4.2.1
+      with:
+        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ECR }}:role/${{ env.AWS_ECR_DEPLOY_ROLE }}
+        aws-region: ${{ env.AWS_REGION_ECR }}
+
+    - name: Login to Amazon ECR
+      if: inputs.environment == 'dev'
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build, tag, and push image to Amazon ECR
+      if: inputs.environment == 'dev'
+      id: build-and-push-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        
+      run: |
+        docker build -t $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }} .
+        docker push $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }}
+        echo "::set-output name=image::$ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }}"    
+
+    - name: Configure AWS credentials for App Deployment
+      uses: aws-actions/configure-aws-credentials@v4.2.1
+      with:
+        role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/${{ env.AWS_APP_DEPLOY_ROLE }}
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Download task definition
+      run: |
+        aws ecs describe-task-definition --task-definition ${{ inputs.task-def-arn }} \
+        --query taskDefinition > task-definition.json
+
+    - name: Fill in the new image ID in the Amazon ECS task definition
+      id: update-task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: task-definition.json
+        container-name: ${{ inputs.app-name }}-container
+        image: ${{ inputs.environment == 'dev' && steps.build-and-push-image.outputs.image || format('{0}.dkr.ecr.{1}.amazonaws.com/{2}:{3}', env.AWS_ACCOUNT_ECR, env.AWS_REGION_ECR, inputs.app-name, inputs.image-tag) }}
+
+    - name: Register new task definition
+      id: register-task-def
+      run: |
+
+        TASK_DEF_OUTPUT=$(aws ecs register-task-definition \
+          --cli-input-json file://${{ steps.update-task-def.outputs.task-definition }})
+    
+
+        TASK_DEF_ARN=$(echo "$TASK_DEF_OUTPUT" | jq -r '.taskDefinition.taskDefinitionArn')
+        echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_OUTPUT      
+    
     - name: Fetch parameters from Parameter Store needed for Blue/Green Deploy
       id: get_parameters
       shell: bash
@@ -67,31 +146,6 @@ runs:
         echo "AWS_ACCOUNT_ID: ${{ inputs.aws-account-id }}"
         echo "AWS_REGION: ${{ inputs.aws-region }}"
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4.2.1
-      with:
-        role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/${{ env.AWS_APP_DEPLOY_ROLE }}
-        aws-region: ${{ inputs.aws-region }}
-
-    - name: Validate Inputs
-      shell: bash
-      run: |        
-        # Validate parameters
-
-        if [ -z "${{ inputs.app-name }}" ] || [ -z "${{ inputs.environment }}" ] || \      
-            [ -z "${{ inputs.aws-region }}" ] || [ -z "${{ inputs.aws-account-id }}" ] || \ 
-            [ -z "${{ inputs.desired-count }}" ] || [ -z "${{ inputs.task-def-arn }}" ]; then
-          echo "❌ Missing required parameters for ECS deployment"
-          echo "Required parameters for ECS deployment:"
-          echo "- app-name"
-          echo "- environment"
-          echo "- aws-region"
-          echo "- aws-account-id"
-          echo "- desired-count"
-          echo "- task-def-arn"
-          exit 1
-        fi                  
-
     # ECS Deployment
     - name: ECS Deployment      
       shell: bash
@@ -102,3 +156,25 @@ runs:
           "${{ steps.get_parameters.outputs.service-B-name }}" \
           "${{ steps.get_parameters.outputs.subdomain }}" \
           "${{ inputs.desired-count }}"
+
+    - name: Configure AWS credentials for ECR (for tagging)      
+      uses: aws-actions/configure-aws-credentials@v4.2.1
+      with:
+        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ECR }}:role/${{ env.AWS_ECR_DEPLOY_ROLE }}
+        aws-region: ${{ env.AWS_REGION_ECR }}
+  
+    - name: Login to Amazon ECR (for tagging)
+      id: login-ecr
+      if: success()
+      uses: aws-actions/amazon-ecr-login@v2
+  
+    - name: Tag image with environment tag
+      if: success()
+      run: |
+        ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+        # Pull the image with the SHA tag
+        docker pull $ECR_REGISTRY/${{ inputs.app-name }}:${{ env.IMAGE_TAG }}
+        # Tag it with the environment tag
+        docker tag $ECR_REGISTRY/${{ inputs.app-name }}:${{ env.IMAGE_TAG }} $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.environment }}
+        # Push the environment tag
+        docker push $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.environment }}
