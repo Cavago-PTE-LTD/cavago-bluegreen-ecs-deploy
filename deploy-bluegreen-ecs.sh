@@ -9,18 +9,19 @@ for ((i=1; i<=$#; i++)); do
 done
 
 # Input parameters
-ENVIRONMENT="$1"
-CLUSTER_NAME="$2"
-TASK_DEF_ARN="$3"
-SERVICE_A_NAME="$4"
-SERVICE_B_NAME="$5"
-SUBDOMAIN="$6"
-DESIRED_COUNT="$7"
+APP_NAME="$1"
+ENVIRONMENT="$2"
+CLUSTER_NAME="$3"
+TASK_DEF_ARN="$4"
+SERVICE_A_NAME="$5"
+SERVICE_B_NAME="$6"
+SUBDOMAIN="$7"
+DESIRED_COUNT="$8"
 
+echo "🔑 Starting A/B deployment for application: $APP_NAME"
 echo "🔑 Starting A/B deployment for environment: $ENVIRONMENT"
 echo "🔑 Using cluster name: $CLUSTER_NAME"
 echo "🔑 Using task definition name: $TASK_DEF_ARN"
-echo "🔑 Using listener ARN: $LISTENER_ARN"
 
 echo "🔑 Using service A name: $SERVICE_A_NAME"
 echo "🔑 Using service B name: $SERVICE_B_NAME"

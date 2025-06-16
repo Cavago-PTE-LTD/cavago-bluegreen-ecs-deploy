@@ -10,8 +10,8 @@ env:
 
 inputs:
   # Common parameters
-  deployment-type:
-    description: 'Type of deployment (ecs or ec2)'
+  app-name:
+    description: 'Name of the application being deployed'
     required: true  
   environment:
     description: 'Environment to deploy to (dev, staging, prod)'
@@ -21,41 +21,12 @@ inputs:
     required: true    
   aws-account-id:
     description: 'AWS account ID to deploy to'
-    required: true  
-  subdomain:
-    description: 'Subdomain for the application'
-    required: true  
+    required: true    
   desired-count:
     description: 'Desired count for the application'
-    required: true  
-  # EC2 specific parameters
-  asg-A:
-    description: 'Name of the A Auto Scaling Group (required for EC2 deployment)'
-    required: false
-  asg-B:
-    description: 'Name of the B Auto Scaling Group (required for EC2 deployment)'
-    required: false
-  launch-template-name:
-    description: 'Name of the launch template (required for EC2 deployment)'
-    required: false  
-  launch-template-version:
-    description: 'Version of the launch template (required for EC2 deployment)'
-    required: false
-  zip-file-path:
-    description: 'Name of the ZIP file containing application code (required for EC2 deployment)'
-    required: false  
-  # ECS specific parameters
-  cluster-name:
-    description: 'Name of the ECS cluster (required for ECS deployment)'
-    required: false
+    required: true      
   task-def-arn:
     description: 'ARN of the task definition (required for ECS deployment)'
-    required: false
-  service-A-name:
-    description: 'Name of the blue service (required for ECS deployment)'
-    required: false
-  service-B-name:  
-    description: 'Name of the green service (required for ECS deployment)'
     required: false  
 
 runs:
@@ -63,6 +34,31 @@ runs:
   steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+
+    - name: Fetch parameters from Parameter Store needed for Blue/Green Deploy
+      id: get_parameters
+      run: |        
+
+        param="/cavago/${{inputs.environment}}/${{ inputs.app-name}}/cluster-name"
+        echo "Fetching parameter: $param"
+        value=$(aws ssm get-parameter --name "$param" --with-decryption --query "Parameter.Value" --output text)
+        echo "cluster-name=$value" >> $GITHUB_OUTPUT
+
+        param="/cavago/${{inputs.environment}}/${{ inputs.app-name}}/service-A-name"
+        echo "Fetching parameter: $param"
+        value=$(aws ssm get-parameter --name "$param" --with-decryption --query "Parameter.Value" --output text)
+        echo "service-A-name=$value" >> $GITHUB_OUTPUT
+
+        param="/cavago/${{inputs.environment}}/${{ inputs.app-name}}/service-B-name"
+        echo "Fetching parameter: $param"
+        value=$(aws ssm get-parameter --name "$param" --with-decryption --query "Parameter.Value" --output text)
+        echo "service-B-name=$value" >> $GITHUB_OUTPUT
+
+        param="/cavago/${{inputs.environment}}/${{ inputs.app-name}}/subdomain"
+        echo "Fetching parameter: $param"
+        value=$(aws ssm get-parameter --name "$param" --with-decryption --query "Parameter.Value" --output text)
+        echo "subdomain=$value" >> $GITHUB_OUTPUT        
+
 
     - name: Print input parameters
       shell: bash
@@ -78,86 +74,30 @@ runs:
 
     - name: Validate Inputs
       shell: bash
-      run: |
-        if [ "${{ inputs.deployment-type }}" = "ec2" ]; then
-          # Validate EC2 specific parameters
-          if [ -z "${{ inputs.environment }}" ] || [ -z "${{ inputs.listener-arn }}" ] || \
-             [ -z "${{ inputs.target-group-A }}" ] || [ -z "${{ inputs.target-group-B }}" ] || \
-             [ -z "${{ inputs.asg-A }}" ] || [ -z "${{ inputs.asg-B }}" ] || \
-             [ -z "${{ inputs.subdomain }}" ] || \
-             [ -z "${{ inputs.launch-template-name }}" ] || \
-             [ -z "${{ inputs.launch-template-version }}" ] || \
-             [ -z "${{ inputs.zip-file-path }}" ]; then             
-            echo "❌ Missing required parameters for EC2 deployment"
-            echo "Required parameters for EC2 deployment:"
-            echo "- environment"
-            echo "- listener-arn"
-            echo "- target-group-A"
-            echo "- target-group-B"
-            echo "- asg-A"
-            echo "- asg-B"
-            echo "- launch-template-name"
-            echo "- launch-template-version"
-            echo "- zip-file-path"                        
-            exit 1
-          fi
-        elif [ "${{ inputs.deployment-type }}" = "ecs" ]; then
-          # Validate ECS specific parameters        
+      run: |        
+        # Validate parameters
 
-          if [ -z "${{ inputs.environment }}" ] || [ -z "${{ inputs.subdomain }}" ] || \      
-             [ -z "${{ inputs.desired-count }}" ] || [ -z "${{ inputs.cluster-name }}" ] || \
-             [ -z "${{ inputs.task-def-arn }}" ] || [ -z "${{ inputs.service-A-name }}" ] || \
-             [ -z "${{ inputs.service-B-name }}" ]; then
-            echo "❌ Missing required parameters for ECS deployment"
-            echo "Required parameters for ECS deployment:"
-            echo "- environment"
-            echo "- subdomain"
-            echo "- desired-count"
-            echo "- cluster-name"
-            echo "- task-def-arn"
-            echo "- service-A-name"
-            echo "- service-B-name"
-            exit 1
-          fi          
-        else
-          echo "❌ Invalid deployment type: ${{ inputs.deployment-type }}"
-          echo "Supported deployment types: ecs, ec2"
+        if [ -z "${{ inputs.app-name }}" ] || [ -z "${{ inputs.environment }}" ] || \      
+            [ -z "${{ inputs.aws-region }}" ] || [ -z "${{ inputs.aws-account-id }}" ] || \ 
+            [ -z "${{ inputs.desired-count }}" ] || [ -z "${{ inputs.task-def-arn }}" ]; then
+          echo "❌ Missing required parameters for ECS deployment"
+          echo "Required parameters for ECS deployment:"
+          echo "- app-name"
+          echo "- environment"
+          echo "- aws-region"
+          echo "- aws-account-id"
+          echo "- desired-count"
+          echo "- task-def-arn"
           exit 1
-        fi    
-
-    # EC2 Deployment
-    - name: Print working directory
-      if: inputs.deployment-type == 'ec2'
-      shell: bash
-      run: |
-        echo "Action directory: $GITHUB_ACTION_PATH"
-        echo "Action directory contents:"
-        ls -la "$GITHUB_ACTION_PATH"
-
-    - name: EC2 Deployment
-      if: inputs.deployment-type == 'ec2'
-      shell: bash
-      run: |
-        "$GITHUB_ACTION_PATH/deploy-bluegreen-ec2.sh" \
-          "${{ inputs.environment }}" \
-          "${{ inputs.listener-arn }}" \
-          "${{ inputs.target-group-A }}" \
-          "${{ inputs.target-group-B }}" \
-          "${{ inputs.asg-A }}" \
-          "${{ inputs.asg-B }}" \
-          "${{ inputs.subdomain }}" \
-          "${{ inputs.launch-template-name }}" \
-          "${{ inputs.launch-template-version }}" \          
-          "${{ inputs.zip-file-path }}"
+        fi                  
 
     # ECS Deployment
-    - name: ECS Deployment
-      if: inputs.deployment-type == 'ecs'
+    - name: ECS Deployment      
       shell: bash
       run: |
-        "$GITHUB_ACTION_PATH/deploy-bluegreen-ecs.sh" "${{ inputs.environment }}" "${{ inputs.cluster-name }}" \
+        "$GITHUB_ACTION_PATH/deploy-bluegreen-ecs.sh" "${{ inputs.app-name }}" "${{ inputs.environment }}" "${{ steps.get_parameters.outputs.cluster-name }}" \
           "${{ inputs.task-def-arn }}" \
-          "${{ inputs.service-A-name }}" \
-          "${{ inputs.service-B-name }}" \
-          "${{ inputs.subdomain }}" \
+          "${{ steps.get_parameters.outputs.service-A-name }}" \
+          "${{ steps.get_parameters.outputs.service-B-name }}" \
+          "${{ steps.get_parameters.outputs.subdomain }}" \
           "${{ inputs.desired-count }}"
