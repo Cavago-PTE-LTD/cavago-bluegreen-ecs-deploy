@@ -72,9 +72,9 @@ runs:
     - name: Build, tag, and push image to Amazon ECR
       if: inputs.environment == 'dev'
       id: build-and-push-image
+      shell: bash
       env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}        
       run: |
         docker build -t $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }} .
         docker push $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }}
@@ -88,10 +88,12 @@ runs:
 
     - name: Set ECS Task Definition
       id: ecs-task-definition
+      shell: bash
       run: |
         echo "ECS_TASK_DEFINITION=${{ inputs.app-name }}-${{ inputs.environment }}-task-definition" >> $GITHUB_ENV
 
     - name: Download task definition
+      shell: bash
       run: |
         aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION }} \
         --query taskDefinition > task-definition.json
@@ -106,6 +108,7 @@ runs:
 
     - name: Register new task definition
       id: register-task-def
+      shell: bash
       run: |
 
         TASK_DEF_OUTPUT=$(aws ecs register-task-definition \
@@ -171,6 +174,7 @@ runs:
   
     - name: Tag image with environment tag
       if: success()
+      shell: bash
       run: |
         ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
         # Pull the image with the SHA tag
