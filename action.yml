@@ -112,9 +112,8 @@ runs:
       run: |
 
         TASK_DEF_OUTPUT=$(aws ecs register-task-definition \
-          --cli-input-json file://${{ env.ECS_TASK_DEFINITION }})
+          --cli-input-json file://${{ steps.update-task-def.outputs.task-definition }})
     
-
         TASK_DEF_ARN=$(echo "$TASK_DEF_OUTPUT" | jq -r '.taskDefinition.taskDefinitionArn')
         echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_OUTPUT      
     
