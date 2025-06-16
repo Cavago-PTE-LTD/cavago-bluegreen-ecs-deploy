@@ -37,6 +37,7 @@ runs:
 
     - name: Fetch parameters from Parameter Store needed for Blue/Green Deploy
       id: get_parameters
+      shell: bash
       run: |        
 
         param="/cavago/${{inputs.environment}}/${{ inputs.app-name}}/cluster-name"
