@@ -90,9 +90,14 @@ runs:
         role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/${{ env.AWS_APP_DEPLOY_ROLE }}
         aws-region: ${{ inputs.aws-region }}
 
+    - name: Set ECS Task Definition
+      id: ecs-task-definition
+      run: |
+        echo "ECS_TASK_DEFINITION=${{ inputs.app-name }}-${{ inputs.environment }}-task-definition" >> $GITHUB_ENV
+
     - name: Download task definition
       run: |
-        aws ecs describe-task-definition --task-definition ${{ inputs.task-def-arn }} \
+        aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION }} \
         --query taskDefinition > task-definition.json
 
     - name: Fill in the new image ID in the Amazon ECS task definition
@@ -108,7 +113,7 @@ runs:
       run: |
 
         TASK_DEF_OUTPUT=$(aws ecs register-task-definition \
-          --cli-input-json file://${{ steps.update-task-def.outputs.task-definition }})
+          --cli-input-json file://${{ env.ECS_TASK_DEFINITION }})
     
 
         TASK_DEF_ARN=$(echo "$TASK_DEF_OUTPUT" | jq -r '.taskDefinition.taskDefinitionArn')
@@ -151,7 +156,7 @@ runs:
       shell: bash
       run: |
         "$GITHUB_ACTION_PATH/deploy-bluegreen-ecs.sh" "${{ inputs.app-name }}" "${{ inputs.environment }}" "${{ steps.get_parameters.outputs.cluster-name }}" \
-          "${{ inputs.task-def-arn }}" \
+          "${{ steps.register-task-def.outputs.TASK_DEF_ARN }}" \
           "${{ steps.get_parameters.outputs.service-A-name }}" \
           "${{ steps.get_parameters.outputs.service-B-name }}" \
           "${{ steps.get_parameters.outputs.subdomain }}" \
@@ -173,8 +178,8 @@ runs:
       run: |
         ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
         # Pull the image with the SHA tag
-        docker pull $ECR_REGISTRY/${{ inputs.app-name }}:${{ env.IMAGE_TAG }}
+        docker pull $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }}
         # Tag it with the environment tag
-        docker tag $ECR_REGISTRY/${{ inputs.app-name }}:${{ env.IMAGE_TAG }} $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.environment }}
+        docker tag $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }} $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.environment }}
         # Push the environment tag
         docker push $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.environment }}
