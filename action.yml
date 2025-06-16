@@ -167,8 +167,7 @@ runs:
         role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ECR }}:role/${{ env.AWS_ECR_DEPLOY_ROLE }}
         aws-region: ${{ env.AWS_REGION_ECR }}
   
-    - name: Login to Amazon ECR (for tagging)
-      id: login-ecr
+    - name: Login to Amazon ECR (for tagging)      
       if: success()
       uses: aws-actions/amazon-ecr-login@v2
   
