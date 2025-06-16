@@ -31,6 +31,9 @@ inputs:
   image-tag:
     description: 'Image tag to deploy'
     required: true
+  new-image-tag:
+    description: 'New image tag to deploy for staging and prod deployments'
+    required: false
 
 runs:
   using: "composite"
@@ -181,3 +184,9 @@ runs:
         docker tag $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }} $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.environment }}
         # Push the environment tag
         docker push $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.environment }}
+        
+        # If new-image-tag is provided, add it as an additional tag
+        if [ ! -z "${{ inputs.new-image-tag }}" ]; then
+          docker tag $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }} $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.new-image-tag }}
+          docker push $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.new-image-tag }}
+        fi
