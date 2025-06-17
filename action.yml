@@ -65,7 +65,8 @@ runs:
       uses: aws-actions/amazon-ecr-login@v2
       with:
         registry-type: private
-        registry-ids: ${{ env.AWS_ACCOUNT_ECR }}
+        registries: ${{ env.AWS_ACCOUNT_ECR }}
+        skip-logout: true
 
 
     - name: Checkout repository
