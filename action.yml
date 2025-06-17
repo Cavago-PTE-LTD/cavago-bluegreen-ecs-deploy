@@ -6,9 +6,7 @@ permissions:
   contents: read  
 
 env:
-  AWS_APP_DEPLOY_ROLE: github-actions-deploy-role
-  AWS_ECR_DEPLOY_ROLE: ecr-deploy-role  
-  AWS_ACCOUNT_ECR: "183295408589"
+  AWS_APP_DEPLOY_ROLE: github-actions-deploy-role    
   AWS_REGION_ECR: "us-east-1"
 
 inputs:
@@ -57,16 +55,16 @@ runs:
           exit 1
         fi                  
 
-    - name: Checkout repository
-      uses: actions/checkout@v3
-
-    - name: Configure AWS credentials
-      if: inputs.environment == 'dev'
+    - name: Configure AWS credentials for Deployment
       uses: aws-actions/configure-aws-credentials@v4.2.1
       with:
-        role-to-assume: arn:aws:iam::183295408589:role/ecr-deploy-role
-        aws-region: us-east-1
+        role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/${{ env.AWS_APP_DEPLOY_ROLE }}
+        aws-region: ${{ inputs.aws-region }}
 
+
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
     - name: Login to Amazon ECR
       if: inputs.environment == 'dev'
       id: login-ecr
@@ -82,13 +80,7 @@ runs:
         docker build -t $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }} .
         docker push $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }}
         echo "::set-output name=image::$ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }}"    
-
-    - name: Configure AWS credentials for App Deployment
-      uses: aws-actions/configure-aws-credentials@v4.2.1
-      with:
-        role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/${{ env.AWS_APP_DEPLOY_ROLE }}
-        aws-region: ${{ inputs.aws-region }}
-
+    
     - name: Set ECS Task Definition
       id: ecs-task-definition
       shell: bash
