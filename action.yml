@@ -64,7 +64,7 @@ runs:
       if: inputs.environment == 'dev'
       uses: aws-actions/configure-aws-credentials@v4.2.1
       with:
-        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ECR }}:role/${{ env.AWS_ECR_DEPLOY_ROLE }}
+        role-to-assume: arn:aws:iam::183295408589:role/${{ env.AWS_ECR_DEPLOY_ROLE }}
         aws-region: ${{ env.AWS_REGION_ECR }}
 
     - name: Login to Amazon ECR
