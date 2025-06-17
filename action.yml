@@ -5,6 +5,9 @@ permissions:
   id-token: write
   contents: read  
 
+env:
+  AWS_ACCOUNT_ECR: "183295408589"
+
 inputs:
   # Common parameters
   app-name:
@@ -57,15 +60,18 @@ runs:
         role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/github-actions-deploy-role
         aws-region: ${{ inputs.aws-region }}
 
+    - name: Login to Amazon ECR      
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+      with:
+        registry-type: private
+        registry-ids: ${{ env.AWS_ACCOUNT_ECR }}
+
 
     - name: Checkout repository
       uses: actions/checkout@v3
     
-    - name: Login to Amazon ECR
-      if: inputs.environment == 'dev'
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
-
+    
     - name: Build, tag, and push image to Amazon ECR
       if: inputs.environment == 'dev'
       id: build-and-push-image
