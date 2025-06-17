@@ -66,8 +66,6 @@ runs:
       with:
         registry-type: private
         registries: "183295408589"
-        skip-logout: true
-
 
     - name: Checkout repository
       uses: actions/checkout@v3
