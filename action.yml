@@ -5,10 +5,6 @@ permissions:
   id-token: write
   contents: read  
 
-env:
-  AWS_APP_DEPLOY_ROLE: github-actions-deploy-role    
-  AWS_REGION_ECR: "us-east-1"
-
 inputs:
   # Common parameters
   app-name:
@@ -58,7 +54,7 @@ runs:
     - name: Configure AWS credentials for Deployment
       uses: aws-actions/configure-aws-credentials@v4.2.1
       with:
-        role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/${{ env.AWS_APP_DEPLOY_ROLE }}
+        role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/github-actions-deploy-role
         aws-region: ${{ inputs.aws-region }}
 
 
