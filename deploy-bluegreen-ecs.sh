@@ -144,3 +144,5 @@ echo "🧹 Scaling down old service: $BLUE_SVC"
 aws ecs update-service --cluster "$CLUSTER_NAME" --service "$BLUE_SVC" --desired-count 0
 
 echo "✅ A/B deployment complete!"
+
+

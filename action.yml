@@ -5,9 +5,6 @@ permissions:
   id-token: write
   contents: read  
 
-env:
-  AWS_ACCOUNT_ECR: "183295408589"
-
 inputs:
   # Common parameters
   app-name:
@@ -100,7 +97,7 @@ runs:
       with:
         task-definition: task-definition.json
         container-name: ${{ inputs.app-name }}-container
-        image: ${{ inputs.environment == 'dev' && steps.build-and-push-image.outputs.image || format('{0}.dkr.ecr.{1}.amazonaws.com/{2}:{3}', env.AWS_ACCOUNT_ECR, env.AWS_REGION_ECR, inputs.app-name, inputs.image-tag) }}
+        image: ${{ inputs.environment == 'dev' && steps.build-and-push-image.outputs.image || format('183295408589.dkr.ecr.us-east-1.amazonaws.com/{0}:{1}', inputs.app-name, inputs.image-tag) }}
 
     - name: Register new task definition
       id: register-task-def
