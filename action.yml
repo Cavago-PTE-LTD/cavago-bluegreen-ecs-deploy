@@ -95,7 +95,7 @@ runs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}        
       run: |
-        docker build -t $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }} .
+        docker build --build-arg ENVIRONMENT=${{ inputs.environment }} -t $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }} .
         docker push $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }}
         echo "::set-output name=image::$ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }}"    
     
