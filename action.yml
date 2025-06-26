@@ -28,6 +28,10 @@ inputs:
   new-image-tag:
     description: 'New image tag to deploy for staging and prod deployments'
     required: false
+  build-mode: 
+    description: 'reuse-image | build-new-image'
+    required: false
+    default: 'reuse-image'   
 
 runs:
   using: "composite"
@@ -64,12 +68,28 @@ runs:
         registry-type: private
         registries: "183295408589"
 
+    - name: Check if image exists in ECR
+      id: check-image-exists
+      shell: bash
+      run: |
+        # Check if the image exists in ECR
+        if aws ecr describe-images \
+            --repository-name "${{ inputs.app-name }}" \
+            --image-ids imageTag="${{ inputs.image-tag }}" \
+            --region "${{ inputs.aws-region }}" >/dev/null 2>&1; then
+          echo "image-exists=true" >> $GITHUB_OUTPUT
+          echo "✅ Image ${{ inputs.app-name }}:${{ inputs.image-tag }} found in ECR"
+        else
+          echo "image-exists=false" >> $GITHUB_OUTPUT
+          echo "❌ Image ${{ inputs.app-name }}:${{ inputs.image-tag }} not found in ECR"
+        fi
+
     - name: Checkout repository
       uses: actions/checkout@v3
     
     
     - name: Build, tag, and push image to Amazon ECR
-      if: inputs.environment == 'dev'
+      if: inputs.environment == 'dev' || steps.check-image-exists.outputs.image-exists == 'false' || inputs.build-mode == 'build-new-image'
       id: build-and-push-image
       shell: bash
       env:
