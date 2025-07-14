@@ -59,7 +59,7 @@ runs:
       uses: aws-actions/configure-aws-credentials@v4.2.1
       with:
         role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/github-actions-deploy-role
-        aws-region: ${{ inputs.aws-region }}
+        aws-region: "us-east-1"
 
     - name: Login to Amazon ECR      
       id: login-ecr
@@ -99,6 +99,12 @@ runs:
         docker push $ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }}
         echo "::set-output name=image::$ECR_REGISTRY/${{ inputs.app-name }}:${{ inputs.image-tag }}"    
     
+    - name: Configure AWS credentials for Deployment
+      uses: aws-actions/configure-aws-credentials@v4.2.1
+      with:
+        role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/github-actions-deploy-role
+        aws-region: ${{ inputs.aws-region }}
+
     - name: Set ECS Task Definition
       id: ecs-task-definition
       shell: bash
@@ -173,6 +179,13 @@ runs:
           "${{ steps.get_parameters.outputs.subdomain }}" \
           "${{ inputs.desired-count }}"
   
+
+    - name: Configure AWS credentials for Deployment
+      uses: aws-actions/configure-aws-credentials@v4.2.1
+      with:
+        role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/github-actions-deploy-role
+        aws-region: "us-east-1"
+
     - name: Login to Amazon ECR (for tagging)      
       if: success()
       uses: aws-actions/amazon-ecr-login@v2
