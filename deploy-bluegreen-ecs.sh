@@ -28,9 +28,7 @@ echo "🔑 Using service A name: $SERVICE_A_NAME"
 echo "🔑 Using service B name: $SERVICE_B_NAME"
 echo "🔑 Using subdomain: $SUBDOMAIN"
 echo "🔑 Using desired count: $DESIRED_COUNT"
-if [ -n "$OLD_SUBDOMAIN" ]; then
-  echo "🔑 Using old subdomain: $OLD_SUBDOMAIN"
-fi
+echo "🔑 Using old subdomain: $OLD_SUBDOMAIN"
 
 TARGET_A_ARN=$(aws ecs describe-services \
   --cluster "$CLUSTER_NAME" \

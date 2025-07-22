@@ -177,24 +177,13 @@ runs:
     - name: ECS Deployment      
       shell: bash
       run: |
-        # Build the command with required parameters
-        CMD="$GITHUB_ACTION_PATH/deploy-bluegreen-ecs.sh \
-        "${{ inputs.app-name }}" \
-        "${{ inputs.environment }}" \
-        "${{ steps.get_parameters.outputs.cluster-name }}" \
-        "${{ steps.register-task-def.outputs.TASK_DEF_ARN }}" \
-        "${{ steps.get_parameters.outputs.service-A-name }}" \
-        "${{ steps.get_parameters.outputs.service-B-name }}" \
-        "${{ steps.get_parameters.outputs.subdomain }}" \
-        "${{ inputs.desired-count }}"
-        
-        # Add old-subdomain parameter only if it exists and is not empty
-        if [ ! -z "${{ steps.get_parameters.outputs.old-subdomain }}" ]; then
-          CMD=$CMD "${{ steps.get_parameters.outputs.old-subdomain }}"
-        fi
-        
-        # Execute the command
-        eval $CMD 
+        "$GITHUB_ACTION_PATH/deploy-bluegreen-ecs.sh" "${{ inputs.app-name }}" "${{ inputs.environment }}" "${{ steps.get_parameters.outputs.cluster-name }}" \
+          "${{ steps.register-task-def.outputs.TASK_DEF_ARN }}" \
+          "${{ steps.get_parameters.outputs.service-A-name }}" \
+          "${{ steps.get_parameters.outputs.service-B-name }}" \
+          "${{ steps.get_parameters.outputs.subdomain }}" \
+          "${{ inputs.desired-count }}" \
+          "${{ steps.get_parameters.outputs.old-subdomain }}"
   
 
     - name: Configure AWS credentials for Deployment
