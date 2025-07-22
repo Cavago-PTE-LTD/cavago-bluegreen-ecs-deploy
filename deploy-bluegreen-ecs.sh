@@ -17,6 +17,7 @@ SERVICE_A_NAME="$5"
 SERVICE_B_NAME="$6"
 SUBDOMAIN="$7"
 DESIRED_COUNT="$8"
+OLD_SUBDOMAIN="$9"
 
 echo "🔑 Starting A/B deployment for application: $APP_NAME"
 echo "🔑 Starting A/B deployment for environment: $ENVIRONMENT"
@@ -27,6 +28,9 @@ echo "🔑 Using service A name: $SERVICE_A_NAME"
 echo "🔑 Using service B name: $SERVICE_B_NAME"
 echo "🔑 Using subdomain: $SUBDOMAIN"
 echo "🔑 Using desired count: $DESIRED_COUNT"
+if [ -n "$OLD_SUBDOMAIN" ]; then
+  echo "🔑 Using old subdomain: $OLD_SUBDOMAIN"
+fi
 
 TARGET_A_ARN=$(aws ecs describe-services \
   --cluster "$CLUSTER_NAME" \
@@ -125,17 +129,24 @@ echo "🎯 Blue active TG ARN: $BLUE_TG_ARN"
 echo "🎯 Blue Rule ARN: $BLUE_RULE_ARN"
 echo "🎯 Green Rule ARN (if exists): $GREEN_RULE_ARN"
 
+# Build host-header values array
+HOST_HEADER_VALUES="[\"$SUBDOMAIN\""
+if [ -n "$OLD_SUBDOMAIN" ]; then
+  HOST_HEADER_VALUES="$HOST_HEADER_VALUES, \"$OLD_SUBDOMAIN\""
+fi
+HOST_HEADER_VALUES="$HOST_HEADER_VALUES]"
+
 # Update current active rule: demote to /green/*
 echo "🔧 Updating blue rule to /green/*"
 aws elbv2 modify-rule \
   --rule-arn "$BLUE_RULE_ARN" \
-  --conditions '[{"Field":"host-header","Values":["'"$SUBDOMAIN"'"]}, {"Field":"path-pattern","Values":["/green/*"]}]'  
+  --conditions '[{"Field":"host-header","Values":'"$HOST_HEADER_VALUES"'}, {"Field":"path-pattern","Values":["/green/*"]}]'  
 
 # Update green rule (new deployment): promote to /* 
 echo "🔧 Updating green rule to /*"
 aws elbv2 modify-rule \
   --rule-arn "$GREEN_RULE_ARN" \
-  --conditions '[{"Field":"host-header","Values":["'"$SUBDOMAIN"'"]}, {"Field":"path-pattern","Values":["/*"]}]'  
+  --conditions '[{"Field":"host-header","Values":'"$HOST_HEADER_VALUES"'}, {"Field":"path-pattern","Values":["/*"]}]'  
 
 echo "✅ ALB path patterns and priorities updated!"
 
