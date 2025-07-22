@@ -190,7 +190,7 @@ runs:
         
         # Add old-subdomain parameter only if it exists and is not empty
         if [ ! -z "${{ steps.get_parameters.outputs.old-subdomain }}" ]; then
-          CMD="$CMD \"${{ steps.get_parameters.outputs.old-subdomain }}\""
+          CMD="$CMD ${{ steps.get_parameters.outputs.old-subdomain }}"
         fi
         
         # Execute the command
