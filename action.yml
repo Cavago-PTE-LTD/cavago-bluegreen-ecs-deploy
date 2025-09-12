@@ -87,6 +87,23 @@ runs:
     - name: Checkout repository
       uses: actions/checkout@v3
     
+    - name: Build Maven project if present
+      shell: bash
+      run: |
+        if [ -f "pom.xml" ]; then
+          echo "✅ Maven project detected"
+          if [ -f "./mvnw" ]; then
+            chmod +x ./mvnw
+            ./mvnw clean package -DskipTests
+          else
+            mvn clean package -DskipTests
+          fi
+          ARTIFACT=$(ls target/*.jar | head -n 1)
+          echo "Built JAR: $ARTIFACT"
+          echo "ARTIFACT=$ARTIFACT" >> $GITHUB_ENV
+        else
+          echo "❌ No pom.xml found, skipping Maven build"
+        fi
     
     - name: Build, tag, and push image to Amazon ECR
       if: inputs.environment == 'dev' || steps.check-image-exists.outputs.image-exists == 'false' || inputs.build-mode == 'build-new-image'
