@@ -210,7 +210,7 @@ runs:
     - name: ECS Deployment      
       shell: bash
       run: |
-        "$GITHUB_ACTION_PATH/deploy-bluegreen-ecs.sh" "${{ inputs.app-name }}" "${{ inputs.environment }}" "${{ steps.get_parameters.outputs.cluster-name }}" \
+        "$GITHUB_ACTION_PATH/deploy-bluegreen-ecs2.sh" "${{ inputs.app-name }}" "${{ inputs.environment }}" "${{ steps.get_parameters.outputs.cluster-name }}" \
           "${{ steps.register-task-def.outputs.TASK_DEF_ARN }}" \
           "${{ steps.get_parameters.outputs.service-A-name }}" \
           "${{ steps.get_parameters.outputs.service-B-name }}" \
