@@ -85,26 +85,40 @@ runs:
         fi
 
     - name: Checkout repository
-      uses: actions/checkout@v3
-    
-    - name: Build Maven project if present
-      shell: bash
-      run: |
-        if [ -f "pom.xml" ]; then
-          echo "✅ Maven project detected"
-          if [ -f "./mvnw" ]; then
-            chmod +x ./mvnw
-            ./mvnw clean package -DskipTests
+      uses: actions/checkout@v4
+
+    - name: Detect Maven project
+        id: detect-maven
+        run: |
+          if [ -f "pom.xml" ]; then
+            echo "MAVEN_PROJECT=true" >> $GITHUB_ENV
+            echo "✅ Maven project detected"
           else
-            mvn clean package -DskipTests
+            echo "MAVEN_PROJECT=false" >> $GITHUB_ENV
+            echo "❌ No pom.xml found"
           fi
-          ARTIFACT=$(ls target/*.jar | head -n 1)
-          echo "Built JAR: $ARTIFACT"
-          echo "ARTIFACT=$ARTIFACT" >> $GITHUB_ENV
+    - name: Set up JDK 21 if Maven project exists
+        if: env.MAVEN_PROJECT == 'true'
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+          
+    - name: Build Maven project if present
+      if: env.MAVEN_PROJECT == 'true'
+      shell: bash
+      run: |        
+        if [ -f "./mvnw" ]; then
+          chmod +x ./mvnw
+          ./mvnw clean package -DskipTests
         else
-          echo "❌ No pom.xml found, skipping Maven build"
+          mvn clean package -DskipTests
         fi
-    
+        ARTIFACT=$(ls target/*.jar | head -n 1)
+        echo "Built JAR: $ARTIFACT"
+        echo "ARTIFACT=$ARTIFACT" >> $GITHUB_ENV      
+
     - name: Build, tag, and push image to Amazon ECR
       if: inputs.environment == 'dev' || steps.check-image-exists.outputs.image-exists == 'false' || inputs.build-mode == 'build-new-image'
       id: build-and-push-image
