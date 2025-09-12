@@ -158,7 +158,7 @@ aws elbv2 add-tags \
   --resource-arns "$BLUE_TG_ARN" \
   --tags Key=Deployment,Value=green
 
-echo "✅ Tags updated! $Green_TG_ARN -> Deployment=blue"
+echo "✅ Tags updated! $GREEN_TG_ARN -> Deployment=blue"
 
 # Optionally, scale down the old service
 echo "🧹 Scaling down old service: $BLUE_SVC"
