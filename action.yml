@@ -88,22 +88,23 @@ runs:
       uses: actions/checkout@v4
 
     - name: Detect Maven project
-        id: detect-maven
-        run: |
-          if [ -f "pom.xml" ]; then
-            echo "MAVEN_PROJECT=true" >> $GITHUB_ENV
-            echo "✅ Maven project detected"
-          else
-            echo "MAVEN_PROJECT=false" >> $GITHUB_ENV
-            echo "❌ No pom.xml found"
-          fi
+      id: detect-maven
+      run: |
+        if [ -f "pom.xml" ]; then
+          echo "MAVEN_PROJECT=true" >> $GITHUB_ENV
+          echo "✅ Maven project detected"
+        else
+          echo "MAVEN_PROJECT=false" >> $GITHUB_ENV
+          echo "❌ No pom.xml found"
+        fi
+
     - name: Set up JDK 21 if Maven project exists
-        if: env.MAVEN_PROJECT == 'true'
-        uses: actions/setup-java@v3
-        with:
-          distribution: temurin
-          java-version: 21
-          cache: maven
+      if: env.MAVEN_PROJECT == 'true'
+      uses: actions/setup-java@v3
+      with:
+        distribution: temurin
+        java-version: 21
+        cache: maven
           
     - name: Build Maven project if present
       if: env.MAVEN_PROJECT == 'true'
