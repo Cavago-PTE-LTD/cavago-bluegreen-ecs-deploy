@@ -89,6 +89,7 @@ runs:
 
     - name: Detect Maven project
       id: detect-maven
+      shell: bash
       run: |
         if [ -f "pom.xml" ]; then
           echo "MAVEN_PROJECT=true" >> $GITHUB_ENV
