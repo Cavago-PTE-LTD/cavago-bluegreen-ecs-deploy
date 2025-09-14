@@ -51,8 +51,8 @@ TARGET_B_ARN=$(aws elbv2 describe-target-groups \
 echo "✅ Target Group A ARN: $TARGET_A_ARN"
 echo "✅ Target Group B ARN: $TARGET_B_ARN"
 
-TAGS_A=$(aws elbv2 list-tags --resource-arns "$TARGET_A_ARN" --query "TagDescriptions[0].Tags")
-TAGS_B=$(aws elbv2 list-tags --resource-arns "$TARGET_B_ARN" --query "TagDescriptions[0].Tags")
+TAGS_A=$(aws elbv2 describe-tags --resource-arns "$TARGET_A_ARN" --query "TagDescriptions[0].Tags")
+TAGS_B=$(aws elbv2 describe-tags --resource-arns "$TARGET_B_ARN" --query "TagDescriptions[0].Tags")
 
 echo "✅ Target Group A TAGS: $TAGS_A"
 echo "✅ Target Group B TAGS: $TAGS_B"
