@@ -54,9 +54,15 @@ echo "✅ Target Group B ARN: $TARGET_B_ARN"
 TAGS_A=$(aws elbv2 list-tags --resource-arns "$TARGET_A_ARN" --query "TagDescriptions[0].Tags")
 TAGS_B=$(aws elbv2 list-tags --resource-arns "$TARGET_B_ARN" --query "TagDescriptions[0].Tags")
 
+echo "✅ Target Group A TAGS: $TAGS_A"
+echo "✅ Target Group B TAGS: $TAGS_B"
+
 # Extract "deployment" tag (assuming you tag TGs with deployment=blue|green)
 COLOR_A=$(echo "$TAGS_A" | jq -r '.[] | select(.Key=="Deployment") | .Value')
 COLOR_B=$(echo "$TAGS_B" | jq -r '.[] | select(.Key=="Deployment") | .Value')
+
+echo "✅ Target Group A COLOR: $COLOR_A"
+echo "✅ Target Group B COLOR: $COLOR_B"
 
 if [ "$COLOR_A" == "blue" ] || [ "$COLOR_B" == "green" ]; then
   echo "✅ Service A is BLUE (active). Deploying to Service B."
