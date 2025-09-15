@@ -174,27 +174,27 @@ runs:
       shell: bash
       run: |        
 
-        param="/cavago/${{inputs.environment}}/${{ inputs.app-name}}/cluster-name"
+        param="/cavago/${{ inputs.app-name}}/cluster-name"
         echo "Fetching parameter: $param"
         value=$(aws ssm get-parameter --name "$param" --with-decryption --query "Parameter.Value" --output text)
         echo "cluster-name=$value" >> $GITHUB_OUTPUT
 
-        param="/cavago/${{inputs.environment}}/${{ inputs.app-name}}/service-A-name"
+        param="/cavago/${{ inputs.app-name}}/service-A-name"
         echo "Fetching parameter: $param"
         value=$(aws ssm get-parameter --name "$param" --with-decryption --query "Parameter.Value" --output text)
         echo "service-A-name=$value" >> $GITHUB_OUTPUT
 
-        param="/cavago/${{inputs.environment}}/${{ inputs.app-name}}/service-B-name"
+        param="/cavago/${{ inputs.app-name}}/service-B-name"
         echo "Fetching parameter: $param"
         value=$(aws ssm get-parameter --name "$param" --with-decryption --query "Parameter.Value" --output text)
         echo "service-B-name=$value" >> $GITHUB_OUTPUT
 
-        param="/cavago/${{inputs.environment}}/${{ inputs.app-name}}/subdomain"
+        param="/cavago/${{ inputs.app-name}}/subdomain"
         echo "Fetching parameter: $param"
         value=$(aws ssm get-parameter --name "$param" --with-decryption --query "Parameter.Value" --output text)
         echo "subdomain=$value" >> $GITHUB_OUTPUT        
 
-        param="/cavago/${{inputs.environment}}/${{ inputs.app-name}}/old-subdomain"
+        param="/cavago/${{ inputs.app-name}}/old-subdomain"
         echo "Fetching parameter: $param"
         value=$(aws ssm get-parameter --name "$param" --with-decryption --query "Parameter.Value" --output text)
         echo "old-subdomain=$value" >> $GITHUB_OUTPUT        
